@@ -192,6 +192,7 @@ select, input[type="text"], input[type="number"] {
 .result-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .result-table th, .result-table td {
@@ -199,6 +200,23 @@ select, input[type="text"], input[type="number"] {
     text-align: left;
     border-bottom: 1px solid var(--border-color);
 }
+
+.result-table td > div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-all;
+}
+
+/* Define column widths */
+.result-table th:nth-child(1) { width: 8%; }  /* Method */
+.result-table th:nth-child(2) { width: 8%; }  /* Status */
+.result-table th:nth-child(3) { width: 10%; } /* Time (ms) */
+.result-table th:nth-child(4) { width: 10%; } /* Size (B) */
+.result-table th:nth-child(5) { width: 12%; } /* MIME Type */
+.result-table th:nth-child(6) { width: 52%; } /* URL */
 
 .result-table thead {
     background-color: rgba(0,0,0,0.2);
@@ -208,9 +226,6 @@ select, input[type="text"], input[type="number"] {
     border-bottom: none;
 }
 
-.result-table td.url {
-    word-break: break-all;
-}
 .status-success { color: var(--success-color); }
 .status-error { color: var(--error-color); }
 

@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Header
         const thead = table.createTHead();
         const headerRow = thead.insertRow();
-        const headers = ['Method', 'Status', 'Time', 'Size (B)', 'URL'];
+        const headers = ['Method', 'Status', 'Time (ms)', 'Size (B)', 'MIME Type', 'URL'];
         headers.forEach(text => {
             const th = document.createElement('th');
             th.textContent = text;
@@ -134,17 +134,25 @@ document.addEventListener('DOMContentLoaded', () => {
         entries.forEach(entry => {
             const row = tbody.insertRow();
             
-            row.insertCell().textContent = entry.method;
+            const createCellWithDiv = (text) => {
+                const cell = row.insertCell();
+                const contentDiv = document.createElement('div');
+                contentDiv.textContent = text;
+                contentDiv.title = text; // Add title attribute for tooltip
+                cell.appendChild(contentDiv);
+                return cell;
+            };
+
+            createCellWithDiv(entry.method);
             
-            const statusCell = row.insertCell();
-            statusCell.textContent = entry.status;
+            const statusCell = createCellWithDiv(entry.status);
             statusCell.className = entry.status >= 400 ? 'status-error' : 'status-success';
 
-            row.insertCell().textContent = entry.time;
-            row.insertCell().textContent = entry.size === -1 ? 'N/A' : entry.size;
+            createCellWithDiv(Math.round(entry.time));
+            createCellWithDiv(entry.size === -1 ? 'N/A' : entry.size);
+            createCellWithDiv(entry.mimeType || 'N/A');
             
-            const urlCell = row.insertCell();
-            urlCell.textContent = entry.url;
+            const urlCell = createCellWithDiv(entry.url);
             urlCell.className = 'url';
         });
 
