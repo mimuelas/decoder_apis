@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsContainer = document.getElementById('results-container');
     const spinner = document.getElementById('spinner');
 
+    let currentData = null;
+    let sortCriteria = []; // Array of {key: string, direction: 'asc' | 'desc'}
+
     // --- Drag and Drop ---
     dropZone.addEventListener('click', () => harFileInput.click());
 
@@ -69,6 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
+            currentData = data;
+            sortCriteria = [];
             renderResults(data);
 
         } catch (error) {
@@ -78,9 +83,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Sorting Logic ---
+    function sortEntries(entries) {
+        if (sortCriteria.length === 0) {
+            return entries;
+        }
+
+        const sortedEntries = [...entries]; // Avoid mutating the original data
+
+        sortedEntries.sort((a, b) => {
+            for (const criterion of sortCriteria) {
+                const { key, direction } = criterion;
+                const valA = a[key];
+                const valB = b[key];
+
+                let comparison = 0;
+                if (key === 'size') {
+                    if (valA === -1 && valB !== -1) comparison = 1;
+                    else if (valA !== -1 && valB === -1) comparison = -1;
+                    else comparison = valA - valB;
+                } else if (typeof valA === 'number' && typeof valB === 'number') {
+                    comparison = valA - valB;
+                } else {
+                    comparison = String(valA).localeCompare(String(valB));
+                }
+
+                if (comparison !== 0) {
+                    return direction === 'asc' ? comparison : -comparison;
+                }
+            }
+            return 0;
+        });
+
+        return sortedEntries;
+    }
+
     // --- Render Results ---
     function renderResults(data) {
-        resultsContainer.innerHTML = ''; // Clear again just in case
+        resultsContainer.innerHTML = ''; // Clear for re-rendering
 
         function showNoResults() {
             resultsContainer.innerHTML = '<p>No matching requests found.</p>';
@@ -92,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  showNoResults();
                  return;
             }
-            resultsContainer.appendChild(createTable(data));
+            resultsContainer.appendChild(createTable(sortEntries(data)));
         } else {
             // Grouped results
             const groups = Object.keys(data).sort();
@@ -109,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 title.textContent = `${groupName} (${entries.length} requests)`;
                 groupDiv.appendChild(title);
                 
-                groupDiv.appendChild(createTable(entries));
+                groupDiv.appendChild(createTable(sortEntries(entries)));
                 resultsContainer.appendChild(groupDiv);
             }
         }
@@ -122,12 +162,56 @@ document.addEventListener('DOMContentLoaded', () => {
         // Header
         const thead = table.createTHead();
         const headerRow = thead.insertRow();
-        const headers = ['Method', 'Status', 'Time (ms)', 'Size (B)', 'MIME Type', 'URL'];
-        headers.forEach(text => {
+        const headers = [
+            { text: 'Method', key: 'method' },
+            { text: 'Status', key: 'status' },
+            { text: 'Time (ms)', key: 'time' },
+            { text: 'Size (B)', key: 'size' },
+            { text: 'MIME Type', key: 'mimeType' },
+            { text: 'URL', key: 'url' }
+        ];
+
+        headers.forEach(({ text, key }) => {
             const th = document.createElement('th');
             th.textContent = text;
+            th.dataset.key = key;
+            th.title = 'Click to sort. Hold Shift to sort by multiple columns.';
+
+            th.addEventListener('click', (e) => {
+                const existingCriterionIndex = sortCriteria.findIndex(c => c.key === key);
+
+                if (e.shiftKey) {
+                    if (existingCriterionIndex > -1) {
+                        const existing = sortCriteria[existingCriterionIndex];
+                        existing.direction = existing.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortCriteria.push({ key, direction: 'asc' });
+                    }
+                } else {
+                    if (existingCriterionIndex > -1 && sortCriteria.length === 1) {
+                        sortCriteria[0].direction = sortCriteria[0].direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortCriteria = [{ key, direction: 'asc' }];
+                    }
+                }
+                
+                renderResults(currentData);
+            });
             headerRow.appendChild(th);
         });
+        
+        headerRow.querySelectorAll('th[data-key]').forEach(th => {
+            const key = th.dataset.key;
+            const criterion = sortCriteria.find(c => c.key === key);
+            if (criterion) {
+                th.classList.add('sorted');
+                const indicator = document.createElement('span');
+                indicator.className = 'sort-indicator';
+                indicator.textContent = criterion.direction === 'asc' ? '▲' : '▼';
+                th.appendChild(indicator);
+            }
+        });
+
 
         // Body
         const tbody = table.createTBody();
