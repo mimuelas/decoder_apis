@@ -125,7 +125,7 @@ legend {
     color: var(--text-color-light);
 }
 
-select, input[type="text"] {
+select, input[type="text"], input[type="number"] {
     width: 100%;
     padding: 0.75rem;
     background-color: var(--bg-color);

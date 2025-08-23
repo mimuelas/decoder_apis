@@ -82,10 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderResults(data) {
         resultsContainer.innerHTML = ''; // Clear again just in case
 
+        function showNoResults() {
+            resultsContainer.innerHTML = '<p>No matching requests found.</p>';
+        }
+
         if (Array.isArray(data)) {
             // Non-grouped results
             if (data.length === 0) {
-                 resultsContainer.innerHTML = '<p>No matching requests found.</p>';
+                 showNoResults();
                  return;
             }
             resultsContainer.appendChild(createTable(data));
@@ -93,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Grouped results
             const groups = Object.keys(data).sort();
              if (groups.length === 0) {
-                 resultsContainer.innerHTML = '<p>No matching requests found.</p>';
+                 showNoResults();
                  return;
             }
             for (const groupName of groups) {

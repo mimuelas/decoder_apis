@@ -13,6 +13,11 @@ def analyze_har_data(har_data: dict, args: dict) -> list:
     
     # Filtering logic
     filtered_entries = []
+    
+    # Pre-process filters for efficiency
+    methods_to_check = {m.upper() for m in args.get('method', [])}
+    content_types_to_check = {ct.lower() for ct in args.get('content_type', [])}
+
     for entry in entries:
         request = entry.get('request', {})
         response = entry.get('response', {})
@@ -24,12 +29,12 @@ def analyze_har_data(har_data: dict, args: dict) -> list:
             continue
             
         method = request.get('method', '')
-        if args.get('method') and method.upper() not in [m.upper() for m in args['method']]:
+        if methods_to_check and method.upper() not in methods_to_check:
             continue
 
         content = response.get('content', {})
-        mime_type = content.get('mimeType', '')
-        if args.get('content_type') and not any(ct.lower() in mime_type.lower() for ct in args['content_type']):
+        mime_type = content.get('mimeType', '').lower()
+        if content_types_to_check and not any(ct in mime_type for ct in content_types_to_check):
             continue
 
         url = request.get('url', '')
