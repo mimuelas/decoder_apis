@@ -1,0 +1,239 @@
+:root {
+    --bg-color: #1a1b26;
+    --card-color: #24283b;
+    --border-color: #414868;
+    --text-color: #c0caf5;
+    --text-color-light: #a9b1d6;
+    --primary-color: #7aa2f7;
+    --primary-hover-color: #9dacff;
+    --error-color: #f7768e;
+    --success-color: #9ece6a;
+    --font-family: 'Inter', sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 2rem;
+    font-size: 16px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.main-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.main-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+}
+
+.main-header p {
+    font-size: 1.1rem;
+    color: var(--text-color-light);
+}
+
+.card {
+    background-color: var(--card-color);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.file-upload-card {
+    grid-column: 1 / 2;
+}
+
+.options-card {
+    grid-column: 2 / 3;
+}
+
+h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: var(--text-color);
+}
+
+#drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+#drop-zone.drag-over {
+    background-color: rgba(122, 162, 247, 0.1);
+    border-color: var(--primary-color);
+}
+
+#drop-zone p {
+    margin: 0;
+    color: var(--text-color-light);
+}
+
+#har-file {
+    display: none;
+}
+
+.file-info-hidden {
+    display: none;
+}
+
+#file-info {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--success-color);
+}
+
+.options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+legend {
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+    color: var(--text-color-light);
+}
+
+select, input[type="text"] {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.analyze-button {
+    grid-column: 1 / -1;
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #fff;
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.analyze-button:hover {
+    background-color: var(--primary-hover-color);
+}
+
+/* Results Section */
+.results-hidden {
+    display: none;
+}
+
+#results-section {
+    margin-top: 2rem;
+}
+
+#results-container {
+    background-color: var(--card-color);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.result-group h3 {
+    padding: 1rem 1.5rem;
+    background-color: rgba(122, 162, 247, 0.1);
+    margin: 0;
+    font-size: 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.result-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.result-table th, .result-table td {
+    padding: 0.85rem 1.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.result-table thead {
+    background-color: rgba(0,0,0,0.2);
+}
+
+.result-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.result-table td.url {
+    word-break: break-all;
+}
+.status-success { color: var(--success-color); }
+.status-error { color: var(--error-color); }
+
+.spinner-hidden {
+    display: none;
+}
+
+#spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 2rem auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 900px) {
+    .controls-grid {
+        grid-template-columns: 1fr;
+    }
+}

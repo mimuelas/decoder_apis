@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAR Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="main-header">
+            <h1>HAR Analyzer</h1>
+            <p>Upload a .HAR file to analyze network requests.</p>
+        </header>
+
+        <form id="upload-form" class="controls-grid">
+            <div class="card file-upload-card">
+                <h2>Upload File</h2>
+                <div id="drop-zone">
+                    <input type="file" id="har-file" name="har_file" accept=".har" required>
+                    <p>Drag & drop a .HAR file here, or click to select.</p>
+                </div>
+                <div id="file-info" class="file-info-hidden">
+                    Selected file: <span id="file-name"></span>
+                </div>
+            </div>
+
+            <div class="card options-card">
+                <h2>Options</h2>
+                <div class="options-grid">
+                    <!-- Filtering -->
+                    <fieldset>
+                        <legend>Filter by Error</legend>
+                        <select name="error-filter" id="error-filter">
+                            <option value="">All Requests</option>
+                            <option value="no-errors">No Errors</option>
+                            <option value="has-errors">With Errors</option>
+                        </select>
+                    </fieldset>
+                    <fieldset>
+                        <legend>Filter by Method</legend>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="method" value="GET"> GET</label>
+                            <label><input type="checkbox" name="method" value="POST"> POST</label>
+                            <label><input type="checkbox" name="method" value="PUT"> PUT</label>
+                            <label><input type="checkbox" name="method" value="DELETE"> DELETE</label>
+                            <label><input type="checkbox" name="method" value="OPTIONS"> OPTIONS</label>
+                        </div>
+                    </fieldset>
+                     <fieldset>
+                        <legend>Filter by Content Type</legend>
+                         <div class="checkbox-group">
+                            <label><input type="checkbox" name="content-type" value="json"> JSON</label>
+                            <label><input type="checkbox" name="content-type" value="javascript"> JS</label>
+                            <label><input type="checkbox" name="content-type" value="css"> CSS</label>
+                            <label><input type="checkbox" name="content-type" value="image"> Image</label>
+                            <label><input type="checkbox" name="content-type" value="html"> HTML</label>
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                        <legend>Filter by URL</legend>
+                        <input type="text" name="url-contains" id="url-contains" placeholder="e.g., /api/v1">
+                    </fieldset>
+                    <!-- Sorting -->
+                    <fieldset>
+                        <legend>Sort By</legend>
+                        <select name="sort-by" id="sort-by">
+                            <option value="time">Time</option>
+                            <option value="size">Size</option>
+                        </select>
+                    </fieldset>
+                    <fieldset>
+                        <legend>Sort Order</legend>
+                        <select name="sort-order" id="sort-order">
+                            <option value="asc">Ascending</option>
+                            <option value="desc">Descending</option>
+                        </select>
+                    </fieldset>
+                    <!-- Grouping -->
+                    <fieldset>
+                        <legend>Group By</legend>
+                        <select name="group-by" id="group-by">
+                            <option value="">None</option>
+                            <option value="method">Method</option>
+                            <option value="content-type">Content Type</option>
+                            <option value="status">Status Code</option>
+                        </select>
+                    </fieldset>
+                </div>
+            </div>
+
+            <button type="submit" class="analyze-button">Analyze</button>
+        </form>
+
+        <section id="results-section" class="results-hidden">
+            <h2>Analysis Results</h2>
+            <div id="spinner" class="spinner-hidden"></div>
+            <div id="results-container"></div>
+        </section>
+
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
