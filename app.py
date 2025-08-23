@@ -36,16 +36,14 @@ def analyze_har_data(har_data: dict, args: dict) -> list:
         if args.get('url_contains') and args['url_contains'].lower() not in url.lower():
             continue
             
+        # Filter by URL length
+        max_len = args.get('max_url_len')
+        if max_len is not None and len(url) > max_len:
+            continue
+
         filtered_entries.append(entry)
 
-    # Sorting logic
-    sort_by = args.get('sort_by', 'time')
-    reverse = args.get('reverse', False)
-    if sort_by == 'time':
-        filtered_entries.sort(key=lambda e: e.get('time', 0), reverse=reverse)
-    elif sort_by == 'size':
-        filtered_entries.sort(key=lambda e: e.get('response', {}).get('content', {}).get('size', 0), reverse=reverse)
-        
+    # Sorting is now handled client-side
     return filtered_entries
 
 def format_entries_for_display(entries: list) -> list:
@@ -64,7 +62,7 @@ def format_entries_for_display(entries: list) -> list:
             'method': request.get('method', 'N/A'),
             'status': response.get('status', 'N/A'),
             'url': request.get('url', 'N/A'),
-            'time': f"{entry.get('time', 0):.2f}ms",
+            'time': entry.get('time', 0),
             'size': content.get('size', -1),
             'mimeType': simple_mime if simple_mime else "unknown"
         })
@@ -94,14 +92,18 @@ def upload_har():
         har_data = json.loads(file_content)
         
         # Get options from the form data
+        max_url_len_str = request.form.get('max-url-len')
+        max_url_len = None
+        if max_url_len_str and max_url_len_str.isdigit():
+            max_url_len = int(max_url_len_str)
+
         options = {
             'has_errors': request.form.get('error-filter') == 'has-errors',
             'no_errors': request.form.get('error-filter') == 'no-errors',
             'method': request.form.getlist('method'),
             'content_type': request.form.getlist('content-type'),
             'url_contains': request.form.get('url-contains', ''),
-            'sort_by': request.form.get('sort-by', 'time'),
-            'reverse': request.form.get('sort-order') == 'desc',
+            'max_url_len': max_url_len,
             'group_by': request.form.get('group-by', '')
         }
         

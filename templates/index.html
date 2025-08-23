@@ -64,20 +64,9 @@
                         <legend>Filter by URL</legend>
                         <input type="text" name="url-contains" id="url-contains" placeholder="e.g., /api/v1">
                     </fieldset>
-                    <!-- Sorting -->
                     <fieldset>
-                        <legend>Sort By</legend>
-                        <select name="sort-by" id="sort-by">
-                            <option value="time">Time</option>
-                            <option value="size">Size</option>
-                        </select>
-                    </fieldset>
-                    <fieldset>
-                        <legend>Sort Order</legend>
-                        <select name="sort-order" id="sort-order">
-                            <option value="asc">Ascending</option>
-                            <option value="desc">Descending</option>
-                        </select>
+                        <legend>URL Length Limit</legend>
+                        <input type="number" name="max-url-len" id="max-url-len" placeholder="e.g., 250" min="0">
                     </fieldset>
                     <!-- Grouping -->
                     <fieldset>
