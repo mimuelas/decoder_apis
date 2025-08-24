@@ -181,15 +181,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 const existingCriterionIndex = sortCriteria.findIndex(c => c.key === key);
 
                 if (e.shiftKey) {
+                    // Multi-sort: asc -> desc -> remove
                     if (existingCriterionIndex > -1) {
                         const existing = sortCriteria[existingCriterionIndex];
-                        existing.direction = existing.direction === 'asc' ? 'desc' : 'asc';
+                        if (existing.direction === 'asc') {
+                            existing.direction = 'desc';
+                        } else {
+                            sortCriteria.splice(existingCriterionIndex, 1);
+                        }
                     } else {
                         sortCriteria.push({ key, direction: 'asc' });
                     }
                 } else {
-                    if (existingCriterionIndex > -1 && sortCriteria.length === 1) {
-                        sortCriteria[0].direction = sortCriteria[0].direction === 'asc' ? 'desc' : 'asc';
+                    // Single-sort: asc -> desc -> remove
+                    const isSameSingleSort = sortCriteria.length === 1 && sortCriteria[0].key === key;
+                    if (isSameSingleSort) {
+                        if (sortCriteria[0].direction === 'asc') {
+                            sortCriteria[0].direction = 'desc';
+                        } else {
+                            sortCriteria = [];
+                        }
                     } else {
                         sortCriteria = [{ key, direction: 'asc' }];
                     }
