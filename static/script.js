@@ -311,58 +311,87 @@ document.addEventListener('DOMContentLoaded', () => {
         modalTabPanes.forEach(p => p.classList.remove('active'));
         document.querySelector('.modal-tab-pane[data-tab-content="general"]').classList.add('active');
 
-
         // General Tab
         const generalPane = document.querySelector('[data-tab-content="general"]');
         generalPane.innerHTML = `
             <dl class="detail-grid">
-                <dt>URL</dt><dd>${entry.request.url}</dd>
-                <dt>Method</dt><dd>${entry.request.method}</dd>
-                <dt>Status</dt><dd>${entry.response.status} ${entry.response.statusText}</dd>
+                <dt>URL</dt><dd>${escapeHtml(entry.request.url)}</dd>
+                <dt>Method</dt><dd>${escapeHtml(entry.request.method)}</dd>
+                <dt>Status</dt><dd>${escapeHtml(String(entry.response.status))} ${escapeHtml(entry.response.statusText)}</dd>
                 <dt>Time</dt><dd>${Math.round(entry.time)} ms</dd>
                 <dt>Size</dt><dd>${entry.response.content.size === -1 ? 'N/A' : `${entry.response.content.size} B`}</dd>
-                <dt>MIME Type</dt><dd>${entry.response.content.mimeType}</dd>
-                ${entry.response.redirectURL ? `<dt>Redirect URL</dt><dd>${entry.response.redirectURL}</dd>` : ''}
+                <dt>MIME Type</dt><dd>${escapeHtml(entry.response.content.mimeType)}</dd>
+                ${entry.response.redirectURL ? `<dt>Redirect URL</dt><dd>${escapeHtml(entry.response.redirectURL)}</dd>` : ''}
             </dl>
         `;
 
         // Headers Tab
         const headersPane = document.querySelector('[data-tab-content="headers"]');
-        const reqHeaders = entry.request.headers.map(h => `<tr><td>${h.name}</td><td>${h.value}</td></tr>`).join('');
-        const resHeaders = entry.response.headers.map(h => `<tr><td>${h.name}</td><td>${h.value}</td></tr>`).join('');
+        const reqHeaders = entry.request.headers.map(h => `<tr><td>${escapeHtml(h.name)}</td><td>${escapeHtml(h.value)}</td></tr>`).join('');
+        const resHeaders = entry.response.headers.map(h => `<tr><td>${escapeHtml(h.name)}</td><td>${escapeHtml(h.value)}</td></tr>`).join('');
         headersPane.innerHTML = `
             <div class="headers-grid">
                 <h3>Request Headers</h3>
-                <table>${reqHeaders}</table>
+                <table><tbody>${reqHeaders}</tbody></table>
             </div>
             <div class="headers-grid">
                 <h3>Response Headers</h3>
-                <table>${resHeaders}</table>
+                <table><tbody>${resHeaders}</tbody></table>
             </div>
         `;
 
         // Response Tab
         const responsePane = document.querySelector('[data-tab-content="response"]');
+        responsePane.innerHTML = ''; // Clear previous content
         const content = entry.response.content;
-        let responseContent = 'Response content not available or binary.';
+        const mimeType = content.mimeType || '';
+        
         if (content.text) {
-             if (content.encoding === 'base64') {
+            let responseText = content.text;
+            if (content.encoding === 'base64') {
                 try {
-                    responseContent = atob(content.text);
+                    responseText = atob(responseText);
                 } catch (e) {
-                    responseContent = 'Could not decode base64 content.';
+                    responseText = '[Error: Could not decode base64 content]';
                 }
-            } else {
-                responseContent = content.text;
             }
-            // Pretty print JSON
-            if (content.mimeType.includes('json')) {
+
+            if (mimeType.includes('json')) {
                 try {
-                    responseContent = JSON.stringify(JSON.parse(responseContent), null, 2);
-                } catch (e) { /* Not valid JSON, show as is */ }
+                    responseText = JSON.stringify(JSON.parse(responseText), null, 2);
+                } catch (e) { /* Not a valid JSON, show as is */ }
             }
+            
+            const pre = document.createElement('pre');
+            pre.className = 'response-preview';
+            pre.textContent = responseText;
+            responsePane.appendChild(pre);
+        } else {
+            responsePane.textContent = 'Response content not available or empty.';
         }
-        responsePane.innerHTML = `<pre class="response-preview">${escapeHtml(responseContent)}</pre>`;
+
+        // Preview Tab
+        const previewPane = document.querySelector('[data-tab-content="preview"]');
+        const previewTabBtn = document.querySelector('[data-tab="preview"]');
+        previewPane.innerHTML = '';
+        
+        if (mimeType.startsWith('image/') && content.text) {
+            previewTabBtn.disabled = false;
+            const img = document.createElement('img');
+            img.src = `data:${mimeType};base64,${content.text}`;
+            img.className = 'response-preview-image';
+            previewPane.appendChild(img);
+        } else if (mimeType.includes('html') && content.text) {
+            previewTabBtn.disabled = false;
+            const iframe = document.createElement('iframe');
+            iframe.srcdoc = content.text;
+            iframe.className = 'response-preview-iframe';
+            iframe.sandbox = ''; // Sandbox for security
+            previewPane.appendChild(iframe);
+        } else {
+            previewTabBtn.disabled = true;
+            previewPane.textContent = 'No preview available for this content type.';
+        }
         
         // Timings Tab
         const timingsPane = document.querySelector('[data-tab-content="timings"]');
