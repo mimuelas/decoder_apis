@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const spinner = document.getElementById('spinner');
 
     let currentData = null;
+    let fullDataMap = null;
     let sortCriteria = []; // Array of {key: string, direction: 'asc' | 'desc'}
 
     // --- Drag and Drop ---
@@ -71,10 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error || 'An unknown error occurred.');
             }
 
-            const data = await response.json();
-            currentData = data;
+            const rawData = await response.json();
+            currentData = rawData.displayData;
+            fullDataMap = rawData.fullDataMap;
             sortCriteria = [];
-            renderResults(data);
+            renderResults(currentData);
 
         } catch (error) {
             resultsContainer.innerHTML = `<p class="error">Error: ${error.message}</p>`;
@@ -228,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tbody = table.createTBody();
         entries.forEach(entry => {
             const row = tbody.insertRow();
+            row.dataset.entryId = entry._id; // Set ID for click handling
             
             const createCellWithDiv = (text) => {
                 const cell = row.insertCell();
@@ -251,6 +254,138 @@ document.addEventListener('DOMContentLoaded', () => {
             urlCell.className = 'url';
         });
 
+        tbody.addEventListener('click', (e) => {
+            const row = e.target.closest('tr');
+            if (row && row.dataset.entryId) {
+                const entryId = row.dataset.entryId;
+                const fullEntry = fullDataMap[entryId];
+                if (fullEntry) {
+                    openModal(fullEntry);
+                }
+            }
+        });
+
         return table;
     }
+
+    // --- Modal Logic ---
+    const modal = document.getElementById('modal');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const modalTabs = document.querySelector('.modal-tabs');
+    const modalTabPanes = document.querySelectorAll('.modal-tab-pane');
+
+    function openModal(entry) {
+        renderModalContent(entry);
+        modal.classList.remove('modal-hidden');
+    }
+
+    function closeModal() {
+        modal.classList.add('modal-hidden');
+    }
+
+    modalOverlay.addEventListener('click', closeModal);
+    modalCloseBtn.addEventListener('click', closeModal);
+
+    modalTabs.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-tab-btn')) {
+            const tabName = e.target.dataset.tab;
+            
+            modalTabs.querySelector('.active').classList.remove('active');
+            e.target.classList.add('active');
+
+            modalTabPanes.forEach(pane => {
+                if (pane.dataset.tabContent === tabName) {
+                    pane.classList.add('active');
+                } else {
+                    pane.classList.remove('active');
+                }
+            });
+        }
+    });
+
+    function renderModalContent(entry) {
+        // Reset to the first tab
+        modalTabs.querySelector('.active').classList.remove('active');
+        modalTabs.querySelector('[data-tab="general"]').classList.add('active');
+        modalTabPanes.forEach(p => p.classList.remove('active'));
+        document.querySelector('.modal-tab-pane[data-tab-content="general"]').classList.add('active');
+
+
+        // General Tab
+        const generalPane = document.querySelector('[data-tab-content="general"]');
+        generalPane.innerHTML = `
+            <dl class="detail-grid">
+                <dt>URL</dt><dd>${entry.request.url}</dd>
+                <dt>Method</dt><dd>${entry.request.method}</dd>
+                <dt>Status</dt><dd>${entry.response.status} ${entry.response.statusText}</dd>
+                <dt>Time</dt><dd>${Math.round(entry.time)} ms</dd>
+                <dt>Size</dt><dd>${entry.response.content.size === -1 ? 'N/A' : `${entry.response.content.size} B`}</dd>
+                <dt>MIME Type</dt><dd>${entry.response.content.mimeType}</dd>
+                ${entry.response.redirectURL ? `<dt>Redirect URL</dt><dd>${entry.response.redirectURL}</dd>` : ''}
+            </dl>
+        `;
+
+        // Headers Tab
+        const headersPane = document.querySelector('[data-tab-content="headers"]');
+        const reqHeaders = entry.request.headers.map(h => `<tr><td>${h.name}</td><td>${h.value}</td></tr>`).join('');
+        const resHeaders = entry.response.headers.map(h => `<tr><td>${h.name}</td><td>${h.value}</td></tr>`).join('');
+        headersPane.innerHTML = `
+            <div class="headers-grid">
+                <h3>Request Headers</h3>
+                <table>${reqHeaders}</table>
+            </div>
+            <div class="headers-grid">
+                <h3>Response Headers</h3>
+                <table>${resHeaders}</table>
+            </div>
+        `;
+
+        // Response Tab
+        const responsePane = document.querySelector('[data-tab-content="response"]');
+        const content = entry.response.content;
+        let responseContent = 'Response content not available or binary.';
+        if (content.text) {
+             if (content.encoding === 'base64') {
+                try {
+                    responseContent = atob(content.text);
+                } catch (e) {
+                    responseContent = 'Could not decode base64 content.';
+                }
+            } else {
+                responseContent = content.text;
+            }
+            // Pretty print JSON
+            if (content.mimeType.includes('json')) {
+                try {
+                    responseContent = JSON.stringify(JSON.parse(responseContent), null, 2);
+                } catch (e) { /* Not valid JSON, show as is */ }
+            }
+        }
+        responsePane.innerHTML = `<pre class="response-preview">${escapeHtml(responseContent)}</pre>`;
+        
+        // Timings Tab
+        const timingsPane = document.querySelector('[data-tab-content="timings"]');
+        const timings = entry.timings;
+        timingsPane.innerHTML = `
+            <dl class="detail-grid">
+                <dt>Blocked</dt><dd>${Math.round(timings.blocked)} ms</dd>
+                <dt>DNS</dt><dd>${timings.dns > -1 ? Math.round(timings.dns) + ' ms' : 'N/A'}</dd>
+                <dt>Connect</dt><dd>${timings.connect > -1 ? Math.round(timings.connect) + ' ms' : 'N/A'}</dd>
+                <dt>Send</dt><dd>${Math.round(timings.send)} ms</dd>
+                <dt>Wait</dt><dd>${Math.round(timings.wait)} ms</dd>
+                <dt>Receive</dt><dd>${Math.round(timings.receive)} ms</dd>
+                <dt><strong>Total</strong></dt><dd><strong>${Math.round(entry.time)} ms</strong></dd>
+            </dl>
+        `;
+    }
+    
+    function escapeHtml(unsafe) {
+        return unsafe
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+     }
 });

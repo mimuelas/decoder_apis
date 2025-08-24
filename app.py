@@ -11,6 +11,12 @@ def analyze_har_data(har_data: dict, args: dict) -> list:
     log = har_data.get('log', {})
     entries = log.get('entries', [])
     
+    # Add a unique ID to each entry before filtering
+    entries_with_id = []
+    for i, entry in enumerate(entries):
+        entry['_id'] = i
+        entries_with_id.append(entry)
+
     # Filtering logic
     filtered_entries = []
     
@@ -18,7 +24,7 @@ def analyze_har_data(har_data: dict, args: dict) -> list:
     methods_to_check = {m.upper() for m in args.get('method', [])}
     content_types_to_check = {ct.lower() for ct in args.get('content_type', [])}
 
-    for entry in entries:
+    for entry in entries_with_id:
         request = entry.get('request', {})
         response = entry.get('response', {})
         
@@ -64,6 +70,7 @@ def format_entries_for_display(entries: list) -> list:
         simple_mime = mime_type.split('/')[-1]
 
         formatted.append({
+            '_id': entry.get('_id'),
             'method': request.get('method', 'N/A'),
             'status': response.get('status', 'N/A'),
             'url': request.get('url', 'N/A'),
@@ -114,6 +121,9 @@ def upload_har():
         
         # Process and filter data
         filtered_entries = analyze_har_data(har_data, options)
+
+        # Create a map of full entries for the modal view
+        full_data_map = {entry['_id']: entry for entry in filtered_entries}
         
         # Grouping logic
         group_by = options.get('group_by')
@@ -134,11 +144,12 @@ def upload_har():
             
             # Format entries within each group for display
             display_groups = {k: format_entries_for_display(v) for k, v in groups.items()}
-            return jsonify(display_groups)
+            return jsonify({'displayData': display_groups, 'fullDataMap': full_data_map})
 
         else:
             # Just return the formatted list if not grouping
-            return jsonify(format_entries_for_display(filtered_entries))
+            display_data = format_entries_for_display(filtered_entries)
+            return jsonify({'displayData': display_data, 'fullDataMap': full_data_map})
 
     except json.JSONDecodeError:
         return jsonify({'error': 'Invalid JSON in HAR file. Check if the file is corrupted or incomplete.'}), 400

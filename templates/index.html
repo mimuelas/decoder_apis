@@ -92,5 +92,29 @@
 
     </div>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+    <div id="modal" class="modal-hidden">
+        <div id="modal-overlay"></div>
+        <div id="modal-content">
+            <div class="modal-header">
+                <h2>Request Details</h2>
+                <button id="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-tabs">
+                    <button class="modal-tab-btn active" data-tab="general">General</button>
+                    <button class="modal-tab-btn" data-tab="headers">Headers</button>
+                    <button class="modal-tab-btn" data-tab="response">Response</button>
+                    <button class="modal-tab-btn" data-tab="timings">Timings</button>
+                </div>
+                <div class="modal-tab-content">
+                    <div class="modal-tab-pane active" data-tab-content="general"></div>
+                    <div class="modal-tab-pane" data-tab-content="headers"></div>
+                    <div class="modal-tab-pane" data-tab-content="response"></div>
+                    <div class="modal-tab-pane" data-tab-content="timings"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
