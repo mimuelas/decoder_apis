@@ -192,11 +192,39 @@ input:-webkit-autofill:active {
 }
 
 .result-group h3 {
-    padding: 1rem 1.5rem;
+    padding: 1rem 1.5rem 1rem 2.5rem;
     background-color: rgba(122, 162, 247, 0.1);
     margin: 0;
     font-size: 1.2rem;
     border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.result-group h3:hover {
+    background-color: rgba(122, 162, 247, 0.2);
+}
+
+.result-group.collapsed .result-table {
+    display: none;
+}
+
+.result-group.collapsed h3 {
+    border-bottom: none;
+}
+
+.result-group h3::before {
+    content: '−';
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: bold;
+}
+
+.result-group.collapsed h3::before {
+    content: '+';
 }
 
 .result-table {

@@ -145,10 +145,16 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const groupName of groups) {
                 const entries = data[groupName];
                 const groupDiv = document.createElement('div');
-                groupDiv.className = 'result-group';
+                groupDiv.className = 'result-group collapsed'; // Start collapsed
                 
                 const title = document.createElement('h3');
+                title.className = 'group-title';
                 title.textContent = `${groupName} (${entries.length} requests)`;
+                
+                title.addEventListener('click', () => {
+                    groupDiv.classList.toggle('collapsed');
+                });
+
                 groupDiv.appendChild(title);
                 
                 groupDiv.appendChild(createTable(sortEntries(entries)));
