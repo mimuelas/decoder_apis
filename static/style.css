@@ -359,6 +359,29 @@ input:-webkit-autofill:active {
     font-size: 1.2rem;
 }
 
+.modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+#copy-curl-btn {
+    background-color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    color: var(--card-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+#copy-curl-btn:hover {
+    background-color: var(--primary-hover-color);
+}
+
+
 #modal-close-btn {
     background: none;
     border: none;

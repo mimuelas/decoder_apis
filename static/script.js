@@ -278,20 +278,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('modal');
     const modalOverlay = document.getElementById('modal-overlay');
     const modalCloseBtn = document.getElementById('modal-close-btn');
+    const copyCurlBtn = document.getElementById('copy-curl-btn');
     const modalTabs = document.querySelector('.modal-tabs');
     const modalTabPanes = document.querySelectorAll('.modal-tab-pane');
+    let currentModalEntry = null;
 
     function openModal(entry) {
+        currentModalEntry = entry;
         renderModalContent(entry);
         modal.classList.remove('modal-hidden');
     }
 
     function closeModal() {
         modal.classList.add('modal-hidden');
+        currentModalEntry = null;
     }
 
     modalOverlay.addEventListener('click', closeModal);
     modalCloseBtn.addEventListener('click', closeModal);
+
+    copyCurlBtn.addEventListener('click', () => {
+        if (currentModalEntry && currentModalEntry.curl) {
+            navigator.clipboard.writeText(currentModalEntry.curl).then(() => {
+                copyCurlBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyCurlBtn.textContent = 'Copy as cURL';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy cURL command: ', err);
+                alert('Failed to copy cURL command.');
+            });
+        }
+    });
 
     modalTabs.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal-tab-btn')) {

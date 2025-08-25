@@ -2,6 +2,35 @@ from flask import Flask, request, jsonify, render_template
 import json
 from collections import defaultdict
 import os
+import shlex
+
+# --- cURL Generation ---
+
+def generate_curl_command(entry: dict) -> str:
+    """Generates a cURL command string from a HAR entry."""
+    req = entry.get('request', {})
+    
+    parts = ['curl', shlex.quote(req.get('url', ''))]
+
+    method = req.get('method', 'GET').upper()
+    if method != 'GET':
+        parts.extend(['-X', method])
+
+    for header in req.get('headers', []):
+        parts.extend(['-H', shlex.quote(f"{header['name']}: {header['value']}")])
+
+    post_data = req.get('postData', {})
+    if 'text' in post_data:
+        # shlex.quote handles escaping for the shell
+        parts.extend(['--data-binary', shlex.quote(post_data['text'])])
+        
+        # Add content-type header if not already present
+        has_content_type = any(h['name'].lower() == 'content-type' for h in req.get('headers', []))
+        if not has_content_type and 'mimeType' in post_data:
+            parts.extend(['-H', shlex.quote(f"Content-Type: {post_data['mimeType']}")])
+
+    return ' '.join(parts)
+
 
 # --- HAR Analyzer Logic ---
 # (We'll move the logic from har_decoder.py here and adapt it)
@@ -122,8 +151,11 @@ def upload_har():
         # Process and filter data
         filtered_entries = analyze_har_data(har_data, options)
 
-        # Create a map of full entries for the modal view
-        full_data_map = {entry['_id']: entry for entry in filtered_entries}
+        # Create a map of full entries for the modal view and add cURL commands
+        full_data_map = {}
+        for entry in filtered_entries:
+            entry['curl'] = generate_curl_command(entry)
+            full_data_map[entry['_id']] = entry
         
         # Grouping logic
         group_by = options.get('group_by')
