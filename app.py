@@ -4,6 +4,30 @@ from collections import defaultdict
 import os
 import shlex
 from urllib.parse import urlparse
+import mimetypes
+
+# --- File Extension Logic ---
+
+def get_extension_from_mimetype(mime_type_str: str) -> str:
+    """Guesses a file extension from a MIME type string in a robust way."""
+    if not mime_type_str:
+        return 'bin'  # Default for unknown
+
+    # Clean up the mime type (e.g., 'application/json; charset=utf-8' -> 'application/json')
+    base_mime_type = mime_type_str.split(';')[0].strip()
+
+    # Use the mimetypes library to guess the extension
+    extension = mimetypes.guess_extension(base_mime_type, strict=False)
+
+    if extension:
+        # mimetypes returns '.ext', so we strip the dot
+        return extension.lstrip('.')
+    else:
+        # Fallback for truly unknown types like application/octet-stream
+        if 'json' in base_mime_type: return 'json'
+        if 'javascript' in base_mime_type: return 'js'
+        if 'svg' in base_mime_type: return 'svg'
+        return 'bin'
 
 # --- cURL Generation ---
 
@@ -170,6 +194,9 @@ def upload_har():
         full_data_map = {}
         for entry in filtered_entries:
             entry['curl'] = generate_curl_command(entry)
+            entry['fileExtension'] = get_extension_from_mimetype(
+                entry.get('response', {}).get('content', {}).get('mimeType', '')
+            )
             full_data_map[entry['_id']] = entry
         
         # Grouping logic

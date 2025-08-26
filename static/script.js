@@ -447,18 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const content = currentModalEntry.response.content;
         let data = content.text || '';
         const mimeType = content.mimeType || 'text/plain';
-        
-        // Map MIME type to a cleaner file extension
-        const extensionMap = {
-            'javascript': 'js',
-            'html': 'html',
-            'json': 'json',
-            'xml': 'xml',
-            'plain': 'txt',
-            'svg+xml': 'svg'
-        };
-        const mainType = mimeType.split(';')[0].split('/').pop();
-        const extension = extensionMap[mainType] || mainType.split('+')[0] || 'txt';
+        const extension = currentModalEntry.fileExtension || 'bin';
         
         if (content.encoding === 'base64') {
             try {
@@ -609,5 +598,5 @@ document.addEventListener('DOMContentLoaded', () => {
              .replace(/>/g, "&gt;")
              .replace(/"/g, "&quot;")
              .replace(/'/g, "&#039;");
-     }
+    }
 });
