@@ -391,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalOverlay = document.getElementById('modal-overlay');
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const copyCurlBtn = document.getElementById('copy-curl-btn');
+    const downloadResponseBtn = document.getElementById('download-response-btn');
     const modalTabs = document.querySelector('.modal-tabs');
     const modalTabPanes = document.querySelectorAll('.modal-tab-pane');
     let currentModalEntry = null;
@@ -440,12 +441,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    downloadResponseBtn.addEventListener('click', () => {
+        if (!currentModalEntry) return;
+
+        const content = currentModalEntry.response.content;
+        let data = content.text || '';
+        const mimeType = content.mimeType || 'text/plain';
+        
+        // Map MIME type to a cleaner file extension
+        const extensionMap = {
+            'javascript': 'js',
+            'html': 'html',
+            'json': 'json',
+            'xml': 'xml',
+            'plain': 'txt',
+            'svg+xml': 'svg'
+        };
+        const mainType = mimeType.split(';')[0].split('/').pop();
+        const extension = extensionMap[mainType] || mainType.split('+')[0] || 'txt';
+        
+        if (content.encoding === 'base64') {
+            try {
+                // Create a Blob from the base64 string
+                const byteCharacters = atob(data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {type: mimeType});
+                const url = URL.createObjectURL(blob);
+                triggerDownload(url, `response.${extension}`);
+                URL.revokeObjectURL(url);
+                return;
+            } catch (e) {
+                console.error("Failed to decode base64 for download:", e);
+                alert("Failed to process base64 content for download.");
+                return;
+            }
+        }
+        
+        // For plain text
+        const blob = new Blob([data], {type: mimeType});
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, `response.${extension}`);
+        URL.revokeObjectURL(url);
+    });
+
+    function triggerDownload(url, filename) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
     function renderModalContent(entry) {
         // Reset to the first tab
         modalTabs.querySelector('.active').classList.remove('active');
         modalTabs.querySelector('[data-tab="general"]').classList.add('active');
         modalTabPanes.forEach(p => p.classList.remove('active'));
         document.querySelector('.modal-tab-pane[data-tab-content="general"]').classList.add('active');
+
 
         // General Tab
         const generalPane = document.querySelector('[data-tab-content="general"]');
@@ -478,11 +536,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Response Tab
         const responsePane = document.querySelector('[data-tab-content="response"]');
-        responsePane.innerHTML = ''; // Clear previous content
+        const responseContentPre = document.getElementById('response-content-pre');
         const content = entry.response.content;
         const mimeType = content.mimeType || '';
         
+        const downloadBtn = document.getElementById('download-response-btn');
         if (content.text) {
+            downloadBtn.style.display = 'block';
             let responseText = content.text;
             if (content.encoding === 'base64') {
                 try {
@@ -497,13 +557,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     responseText = JSON.stringify(JSON.parse(responseText), null, 2);
                 } catch (e) { /* Not a valid JSON, show as is */ }
             }
-            
-            const pre = document.createElement('pre');
-            pre.className = 'response-preview';
-            pre.textContent = responseText;
-            responsePane.appendChild(pre);
+            responseContentPre.textContent = responseText;
         } else {
-            responsePane.textContent = 'Response content not available or empty.';
+            downloadBtn.style.display = 'none';
+            responseContentPre.textContent = 'Response content not available or empty.';
         }
 
         // Preview Tab

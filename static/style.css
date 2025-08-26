@@ -405,6 +405,8 @@ input:-webkit-autofill:active {
     display: flex;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 1.5rem;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .modal-tab-btn {
@@ -549,4 +551,28 @@ input:-webkit-autofill:active {
 }
 .multiselect.expanded .select-arrow {
     transform: rotate(180deg);
+}
+
+#download-response-btn {
+    background-color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    color: var(--card-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+#download-response-btn:hover {
+    background-color: var(--primary-hover-color);
+}
+
+#response-content-pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    margin: 0;
 }

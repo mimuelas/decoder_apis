@@ -119,16 +119,21 @@
             </div>
             <div class="modal-body">
                 <div class="modal-tabs">
-                    <button class="modal-tab-btn active" data-tab="general">General</button>
-                    <button class="modal-tab-btn" data-tab="headers">Headers</button>
-                    <button class="modal-tab-btn" data-tab="response">Response</button>
-                    <button class="modal-tab-btn" data-tab="preview">Preview</button>
-                    <button class="modal-tab-btn" data-tab="timings">Timings</button>
+                    <div>
+                        <button class="modal-tab-btn active" data-tab="general">General</button>
+                        <button class="modal-tab-btn" data-tab="headers">Headers</button>
+                        <button class="modal-tab-btn" data-tab="response">Response</button>
+                        <button class="modal-tab-btn" data-tab="preview">Preview</button>
+                        <button class="modal-tab-btn" data-tab="timings">Timings</button>
+                    </div>
+                    <button id="download-response-btn">Download Response</button>
                 </div>
                 <div class="modal-tab-content">
                     <div class="modal-tab-pane active" data-tab-content="general"></div>
                     <div class="modal-tab-pane" data-tab-content="headers"></div>
-                    <div class="modal-tab-pane" data-tab-content="response"></div>
+                    <div class="modal-tab-pane" data-tab-content="response">
+                        <pre id="response-content-pre"></pre>
+                    </div>
                     <div class="modal-tab-pane" data-tab-content="preview"></div>
                     <div class="modal-tab-pane" data-tab-content="timings"></div>
                 </div>
