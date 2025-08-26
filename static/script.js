@@ -7,10 +7,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsSection = document.getElementById('results-section');
     const resultsContainer = document.getElementById('results-container');
     const spinner = document.getElementById('spinner');
+    const domainFilterFieldset = document.getElementById('domain-filter-fieldset');
+    const domainSelectBox = document.getElementById('domain-select-box');
+    const domainCheckboxes = document.getElementById('domain-checkboxes');
+    const domainSelectText = document.querySelector('.select-text');
 
     let currentData = null;
     let fullDataMap = null;
     let sortCriteria = []; // Array of {key: string, direction: 'asc' | 'desc'}
+    let allDomains = [];
 
     // --- Drag and Drop ---
     dropZone.addEventListener('click', () => harFileInput.click());
@@ -56,6 +61,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const formData = new FormData(form);
         
+        // Append selected domains to formData
+        const selectedDomains = getSelectedDomains();
+        formData.delete('domains'); // Clear existing domains if any
+        selectedDomains.forEach(domain => formData.append('domains', domain));
+        
         // Show spinner and clear previous results
         resultsSection.classList.remove('results-hidden');
         spinner.classList.remove('spinner-hidden');
@@ -73,6 +83,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const rawData = await response.json();
+            
+            // On first analysis, populate domain filter
+            if (!currentData) {
+                populateDomainFilter(rawData.fullDataMap);
+            }
+
             currentData = rawData.displayData;
             fullDataMap = rawData.fullDataMap;
             sortCriteria = [];
@@ -84,6 +100,102 @@ document.addEventListener('DOMContentLoaded', () => {
             spinner.classList.add('spinner-hidden');
         }
     });
+
+    // --- Domain Filter Logic ---
+    function populateDomainFilter(dataMap) {
+        const domains = new Set();
+        try {
+            for (const key in dataMap) {
+                const url = dataMap[key]?.request?.url;
+                if (url) {
+                    const domain = new URL(url).hostname;
+                    domains.add(domain);
+                }
+            }
+        } catch (e) {
+            console.error("Error parsing URLs for domain filter:", e);
+        }
+
+        allDomains = Array.from(domains).sort();
+        domainCheckboxes.innerHTML = '';
+        
+        // Add "Select All" option
+        const selectAllLabel = document.createElement('label');
+        selectAllLabel.className = 'select-all-label';
+        const selectAllCheckbox = document.createElement('input');
+        selectAllCheckbox.type = 'checkbox';
+        selectAllCheckbox.id = 'select-all-domains';
+        selectAllLabel.appendChild(selectAllCheckbox);
+        selectAllLabel.appendChild(document.createTextNode(' Select/Deselect All'));
+        domainCheckboxes.appendChild(selectAllLabel);
+
+        allDomains.forEach(domain => {
+            const label = document.createElement('label');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = domain;
+            checkbox.name = 'domains';
+            
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(` ${domain}`));
+            domainCheckboxes.appendChild(label);
+        });
+
+        if (allDomains.length > 0) {
+            domainFilterFieldset.classList.remove('hidden');
+        }
+    }
+
+    function getSelectedDomains() {
+        const selected = [];
+        domainCheckboxes.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+            selected.push(cb.value);
+        });
+        return selected;
+    }
+
+    domainSelectBox.addEventListener('click', (e) => {
+        e.stopPropagation();
+        domainCheckboxes.classList.toggle('hidden');
+        domainSelectBox.parentElement.classList.toggle('expanded');
+    });
+
+    document.addEventListener('click', () => {
+        domainCheckboxes.classList.add('hidden');
+        domainSelectBox.parentElement.classList.remove('expanded');
+    });
+    
+    domainCheckboxes.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent closing when clicking inside
+    });
+
+    domainCheckboxes.addEventListener('change', (e) => {
+        if (e.target.id === 'select-all-domains') {
+            const isChecked = e.target.checked;
+            domainCheckboxes.querySelectorAll('input[name="domains"]').forEach(cb => {
+                cb.checked = isChecked;
+            });
+        } else {
+            const allDomainCheckboxes = domainCheckboxes.querySelectorAll('input[name="domains"]');
+            const selectAll = document.getElementById('select-all-domains');
+            selectAll.checked = Array.from(allDomainCheckboxes).every(cb => cb.checked);
+        }
+        updateSelectedDomainText();
+        // Trigger form submission to re-filter
+        form.dispatchEvent(new Event('submit', { cancelable: true }));
+    });
+
+    function updateSelectedDomainText() {
+        const selectedCount = getSelectedDomains().length;
+        if (selectedCount === 0) {
+            domainSelectText.textContent = 'Select domains';
+        } else if (selectedCount === allDomains.length) {
+            domainSelectText.textContent = 'All domains';
+        } else {
+            domainSelectText.textContent = `${selectedCount} domain(s) selected`;
+        }
+    }
+
 
     // --- Sorting Logic ---
     function sortEntries(entries) {

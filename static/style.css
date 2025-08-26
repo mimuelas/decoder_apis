@@ -113,6 +113,10 @@ h2 {
     gap: 1.5rem;
 }
 
+.options-grid .full-width {
+    grid-column: 1 / -1;
+}
+
 fieldset {
     border: none;
     padding: 0;
@@ -490,4 +494,59 @@ input:-webkit-autofill:active {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background-color: white;
+}
+
+/* --- Multiselect Styles --- */
+.hidden {
+    display: none !important;
+}
+.multiselect {
+    position: relative;
+}
+.select-box {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-color);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.select-box .select-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.select-box .select-arrow {
+    transition: transform 0.2s;
+}
+#domain-checkboxes {
+    position: absolute;
+    background-color: var(--card-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+    margin-top: 0.25rem;
+}
+#domain-checkboxes label {
+    display: block;
+    padding: 0.75rem;
+    cursor: pointer;
+}
+#domain-checkboxes label:hover {
+    background-color: var(--bg-color);
+}
+#domain-checkboxes .select-all-label {
+    font-weight: bold;
+    border-bottom: 1px solid var(--border-color);
+}
+.multiselect.expanded .select-arrow {
+    transform: rotate(180deg);
 }

@@ -76,7 +76,21 @@
                             <option value="method">Method</option>
                             <option value="content-type">Content Type</option>
                             <option value="status">Status Code</option>
+                            <option value="domain">Domain</option>
                         </select>
+                    </fieldset>
+                    <!-- Domain Filter -->
+                    <fieldset id="domain-filter-fieldset" class="hidden full-width">
+                        <legend>Filter by Domain</legend>
+                        <div class="multiselect">
+                            <div class="select-box" id="domain-select-box">
+                                <span class="select-text">Select domains</span>
+                                <span class="select-arrow">&#9662;</span>
+                            </div>
+                            <div id="domain-checkboxes" class="hidden">
+                                <!-- Checkboxes will be dynamically inserted here -->
+                            </div>
+                        </div>
                     </fieldset>
                 </div>
             </div>

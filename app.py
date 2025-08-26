@@ -3,6 +3,7 @@ import json
 from collections import defaultdict
 import os
 import shlex
+from urllib.parse import urlparse
 
 # --- cURL Generation ---
 
@@ -57,6 +58,19 @@ def analyze_har_data(har_data: dict, args: dict) -> list:
         request = entry.get('request', {})
         response = entry.get('response', {})
         
+        # Domain filtering
+        if args.get('domains'):
+            url = request.get('url', '')
+            if url:
+                try:
+                    domain = urlparse(url).netloc
+                    if domain not in args['domains']:
+                        continue
+                except Exception:
+                    continue # Skip invalid URLs
+            else:
+                continue # Skip entries without URLs
+
         status = response.get('status', 0)
         if args.get('has_errors') and status < 400:
             continue
@@ -145,7 +159,8 @@ def upload_har():
             'content_type': request.form.getlist('content-type'),
             'url_contains': request.form.get('url-contains', ''),
             'max_url_len': max_url_len,
-            'group_by': request.form.get('group-by', '')
+            'group_by': request.form.get('group-by', ''),
+            'domains': request.form.getlist('domains')
         }
         
         # Process and filter data
@@ -172,6 +187,15 @@ def upload_har():
                 elif group_by == 'status':
                     status = entry.get('response', {}).get('status', 0)
                     key = f"{status // 100}xx" if status > 0 else "Status N/A"
+                elif group_by == 'domain':
+                    url = entry.get('request', {}).get('url', '')
+                    if url:
+                        try:
+                            key = urlparse(url).netloc
+                        except Exception:
+                            key = "Invalid URL"
+                    else:
+                        key = "No URL"
                 groups[key].append(entry)
             
             # Format entries within each group for display
