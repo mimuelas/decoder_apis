@@ -149,6 +149,24 @@ input:-webkit-autofill:active {
     caret-color: var(--text-color) !important;
 }
 
+.input-with-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.input-with-checkbox input[type="text"] {
+    flex-grow: 1;
+}
+
+.regex-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
 .checkbox-group {
     display: flex;
     flex-direction: column;

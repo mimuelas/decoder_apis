@@ -64,6 +64,16 @@
                         <legend>Filter by URL</legend>
                         <input type="text" name="url-contains" id="url-contains" placeholder="e.g., /api/v1">
                     </fieldset>
+                    <fieldset class="full-width">
+                        <legend>Search in Response Body</legend>
+                        <div class="input-with-checkbox">
+                            <input type="text" name="content-contains" id="content-contains" placeholder="e.g., api_key, password, Bearer ...">
+                            <label class="regex-label">
+                                <input type="checkbox" name="content-regex" id="content-regex" value="true">
+                                <span>Regex</span>
+                            </label>
+                        </div>
+                    </fieldset>
                     <fieldset>
                         <legend>URL Length Limit</legend>
                         <input type="number" name="max-url-len" id="max-url-len" placeholder="e.g., 250" min="0">

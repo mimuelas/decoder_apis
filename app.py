@@ -5,6 +5,8 @@ import os
 import shlex
 from urllib.parse import urlparse
 import mimetypes
+import re
+import base64
 
 # --- File Extension Logic ---
 
@@ -118,6 +120,34 @@ def analyze_har_data(har_data: dict, args: dict) -> list:
         max_len = args.get('max_url_len')
         if max_len is not None and len(url) > max_len:
             continue
+        
+        # Filter by response content
+        search_term = args.get('content_contains')
+        if search_term:
+            content_text = content.get('text', '')
+            if content_text:
+                # Handle base64 encoding
+                if content.get('encoding') == 'base64':
+                    try:
+                        content_text = base64.b64decode(content_text).decode('utf-8', 'ignore')
+                    except Exception:
+                        content_text = '' # Could not decode
+
+                is_regex = args.get('is_regex', False)
+                try:
+                    if is_regex:
+                        if not re.search(search_term, content_text, re.IGNORECASE):
+                            continue
+                    else:
+                        if search_term.lower() not in content_text.lower():
+                            continue
+                except re.error:
+                    # Invalid regex, treat as a failed match
+                    continue
+            else:
+                # No content to search in
+                continue
+
 
         filtered_entries.append(entry)
 
@@ -182,6 +212,8 @@ def upload_har():
             'method': request.form.getlist('method'),
             'content_type': request.form.getlist('content-type'),
             'url_contains': request.form.get('url-contains', ''),
+            'content_contains': request.form.get('content-contains', ''),
+            'is_regex': request.form.get('content-regex') == 'true',
             'max_url_len': max_url_len,
             'group_by': request.form.get('group-by', ''),
             'domains': request.form.getlist('domains')
