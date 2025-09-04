@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileNameSpan = document.getElementById('file-name');
     const resultsSection = document.getElementById('results-section');
     const resultsContainer = document.getElementById('results-container');
+    const downloadHarBtn = document.getElementById('download-har-btn');
     const spinner = document.getElementById('spinner');
     const domainFilterFieldset = document.getElementById('domain-filter-fieldset');
     const domainSelectBox = document.getElementById('domain-select-box');
@@ -94,10 +95,86 @@ document.addEventListener('DOMContentLoaded', () => {
             sortCriteria = [];
             renderResults(currentData);
 
+            // Show/hide download button
+            const totalEntries = Object.values(fullDataMap).length;
+            if (totalEntries > 0) {
+                downloadHarBtn.classList.remove('hidden');
+            } else {
+                downloadHarBtn.classList.add('hidden');
+            }
+
         } catch (error) {
             resultsContainer.innerHTML = `<p class="error">Error: ${error.message}</p>`;
         } finally {
             spinner.classList.add('spinner-hidden');
+        }
+    });
+
+    // --- Download HAR Logic ---
+    downloadHarBtn.addEventListener('click', async () => {
+        if (!currentData || !fullDataMap) {
+            alert('No data available to download.');
+            return;
+        }
+
+        let filteredEntryIds = [];
+        if (Array.isArray(currentData)) {
+            // Non-grouped data
+            filteredEntryIds = currentData.map(entry => entry._id);
+        } else {
+            // Grouped data
+            for (const groupName in currentData) {
+                const ids = currentData[groupName].map(entry => entry._id);
+                filteredEntryIds.push(...ids);
+            }
+        }
+
+        if (filteredEntryIds.length === 0) {
+            alert('No entries to download.');
+            return;
+        }
+
+        const uniqueIds = [...new Set(filteredEntryIds)];
+        const entriesToDownload = uniqueIds.map(id => fullDataMap[id]);
+        
+        // Remove our internal '_id' before sending back to the server
+        const cleanedEntries = entriesToDownload.map(entry => {
+            const newEntry = {...entry};
+            delete newEntry._id;
+            // Also remove other frontend-specific fields if they exist
+            delete newEntry.curl;
+            delete newEntry.fileExtension;
+            return newEntry;
+        });
+
+        try {
+            const response = await fetch('/download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(cleanedEntries),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to download file.');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'filtered.har'; // Fallback filename
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+        } catch (error) {
+            console.error('Download error:', error);
+            alert(`Could not download file: ${error.message}`);
         }
     });
 
