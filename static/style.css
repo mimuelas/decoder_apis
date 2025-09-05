@@ -213,7 +213,7 @@ input:-webkit-autofill:active {
     overflow: hidden;
 }
 
-.result-group h3 {
+.result-group .group-title {
     padding: 1rem 1.5rem 1rem 2.5rem;
     background-color: rgba(122, 162, 247, 0.1);
     margin: 0;
@@ -224,19 +224,20 @@ input:-webkit-autofill:active {
     position: relative;
 }
 
-.result-group h3:hover {
+.result-group .group-title:hover {
     background-color: rgba(122, 162, 247, 0.2);
 }
 
-.result-group.collapsed .result-table {
+.result-group.collapsed .result-table,
+.result-group.collapsed .endpoint-table-container {
     display: none;
 }
 
-.result-group.collapsed h3 {
+.result-group.collapsed .group-title {
     border-bottom: none;
 }
 
-.result-group h3::before {
+.result-group .group-title::before {
     content: '−';
     position: absolute;
     left: 1rem;
@@ -245,7 +246,7 @@ input:-webkit-autofill:active {
     font-weight: bold;
 }
 
-.result-group.collapsed h3::before {
+.result-group.collapsed .group-title::before {
     content: '+';
 }
 
@@ -333,6 +334,43 @@ input:-webkit-autofill:active {
     .controls-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* --- Endpoint Grouping Styles --- */
+.endpoint-group-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem 1rem 2.5rem;
+    background-color: rgba(0,0,0,0.2);
+    font-weight: 600;
+}
+
+.group-title.endpoint-title {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    font-size: 1rem;
+    font-weight: normal;
+}
+
+.endpoint-title .endpoint-path {
+    font-weight: 600;
+}
+
+.endpoint-path { flex: 4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.endpoint-methods { flex: 1; }
+.endpoint-status { flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.endpoint-count { flex: 0.5; text-align: right; }
+
+.endpoint-table-container {
+    padding: 1rem;
+    background-color: rgba(0,0,0,0.1);
+    border-bottom: 1px solid var(--border-color);
+}
+.result-group:last-child .endpoint-table-container,
+.result-group:last-child.collapsed .group-title {
+    border-bottom: none;
 }
 
 /* --- Modal Styles --- */

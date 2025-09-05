@@ -59,12 +59,40 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const formData = new FormData(form);
+        // --- Brute-force FormData construction for maximum reliability ---
+        const formData = new FormData();
         
-        // Append selected domains to formData
+        // 1. File
+        formData.append('har_file', document.getElementById('har-file').files[0]);
+
+        // 2. Simple text/select fields by ID
+        formData.append('error-filter', document.getElementById('error-filter').value);
+        formData.append('url-contains', document.getElementById('url-contains').value);
+        formData.append('content-contains', document.getElementById('content-contains').value);
+        formData.append('max-url-len', document.getElementById('max-url-len').value);
+        formData.append('group-by', document.getElementById('group-by').value);
+
+        // 3. Checkboxes by name/ID
+        document.querySelectorAll('input[name="method"]:checked').forEach(cb => {
+            formData.append('method', cb.value);
+        });
+        document.querySelectorAll('input[name="content-type"]:checked').forEach(cb => {
+            formData.append('content-type', cb.value);
+        });
+        if (document.getElementById('content-regex').checked) {
+            formData.append('content-regex', document.getElementById('content-regex').value);
+        }
+
+        // 4. Domains (handled by its own logic)
         const selectedDomains = getSelectedDomains();
-        formData.delete('domains'); // Clear existing domains if any
         selectedDomains.forEach(domain => formData.append('domains', domain));
+
+        // --- DEBUG LOG to verify FormData content ---
+        console.log("--- DEBUG: Final FormData content before sending ---");
+        for (const [key, value] of formData.entries()) {
+            console.log(`${key}: ${value}`);
+        }
+        console.log("-------------------------------------------------");
         
         // Show spinner and clear previous results
         resultsSection.classList.remove('results-hidden');
@@ -92,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentData = rawData.displayData;
             fullDataMap = rawData.fullDataMap;
             sortCriteria = [];
-            renderResults(currentData);
+            renderResults(currentData, rawData.isEndpointGroup);
 
         } catch (error) {
             resultsContainer.innerHTML = `<p class="error">Error: ${error.message}</p>`;
@@ -233,11 +261,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Render Results ---
-    function renderResults(data) {
+    function renderResults(data, isEndpointGroup = false) {
         resultsContainer.innerHTML = ''; // Clear for re-rendering
 
         function showNoResults() {
             resultsContainer.innerHTML = '<p>No matching requests found.</p>';
+        }
+
+        if (isEndpointGroup) {
+            renderEndpointResults(data);
+            return;
         }
 
         if (Array.isArray(data)) {
@@ -273,6 +306,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 resultsContainer.appendChild(groupDiv);
             }
         }
+    }
+
+    function renderEndpointResults(data) {
+        const endpoints = Object.keys(data).sort();
+        if (endpoints.length === 0) {
+            resultsContainer.innerHTML = '<p>No matching requests found.</p>';
+            return;
+        }
+
+        const header = document.createElement('div');
+        header.className = 'endpoint-group-header';
+        header.innerHTML = `
+            <div class="endpoint-path">Endpoint Pattern</div>
+            <div class="endpoint-methods">Methods</div>
+            <div class="endpoint-status">Status Summary</div>
+            <div class="endpoint-count">Count</div>
+        `;
+        resultsContainer.appendChild(header);
+
+        endpoints.forEach(endpointPath => {
+            const endpointData = data[endpointPath];
+            
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'result-group collapsed'; 
+
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'group-title endpoint-title';
+            titleDiv.innerHTML = `
+                <div class="endpoint-path" title="${escapeHtml(endpointPath)}">${escapeHtml(endpointPath)}</div>
+                <div class="endpoint-methods">${escapeHtml(endpointData.methods.join(', '))}</div>
+                <div class="endpoint-status" title="${escapeHtml(endpointData.statusSummary)}">${escapeHtml(endpointData.statusSummary)}</div>
+                <div class="endpoint-count">${endpointData.count}</div>
+            `;
+            
+            titleDiv.addEventListener('click', () => {
+                groupDiv.classList.toggle('collapsed');
+            });
+
+            groupDiv.appendChild(titleDiv);
+            
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'endpoint-table-container';
+            tableContainer.appendChild(createTable(sortEntries(endpointData.entries)));
+            groupDiv.appendChild(tableContainer);
+            
+            resultsContainer.appendChild(groupDiv);
+        });
     }
 
     function createTable(entries) {

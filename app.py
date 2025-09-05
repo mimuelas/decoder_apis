@@ -7,6 +7,26 @@ from urllib.parse import urlparse
 import mimetypes
 import re
 import base64
+import time
+
+# --- Path Generalization ---
+
+def generalize_path(path: str) -> str:
+    """Generalizes a URL path by replacing numbers and UUIDs with placeholders."""
+    if not path:
+        return '/'
+    
+    # Regex to find UUIDs
+    uuid_pattern = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+    
+    # Replace UUIDs first
+    path = re.sub(uuid_pattern, '{uuid}', path)
+    
+    # Replace sequences of digits that are whole path segments
+    # e.g. /api/users/12345/posts -> /api/users/{id}/posts
+    path = re.sub(r'(?<=/)\d+(?=/|$)', '{id}', path)
+    
+    return path
 
 # --- File Extension Logic ---
 
@@ -183,7 +203,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', version=time.time())
 
 @app.route('/upload', methods=['POST'])
 def upload_har():
@@ -233,38 +253,72 @@ def upload_har():
         
         # Grouping logic
         group_by = options.get('group_by')
-        if group_by:
-            groups = defaultdict(list)
-            for entry in filtered_entries:
-                key = 'N/A'
-                if group_by == 'method':
-                    key = entry.get('request', {}).get('method', 'N/A')
-                elif group_by == 'content-type':
-                    mime_type = entry.get('response', {}).get('content', {}).get('mimeType', 'N/A')
-                    simple_mime = mime_type.split(';')[0].split('/')[-1]
-                    key = simple_mime if simple_mime else "unknown"
-                elif group_by == 'status':
-                    status = entry.get('response', {}).get('status', 0)
-                    key = f"{status // 100}xx" if status > 0 else "Status N/A"
-                elif group_by == 'domain':
-                    url = entry.get('request', {}).get('url', '')
-                    if url:
-                        try:
-                            key = urlparse(url).netloc
-                        except Exception:
-                            key = "Invalid URL"
-                    else:
-                        key = "No URL"
-                groups[key].append(entry)
-            
-            # Format entries within each group for display
-            display_groups = {k: format_entries_for_display(v) for k, v in groups.items()}
-            return jsonify({'displayData': display_groups, 'fullDataMap': full_data_map})
 
-        else:
-            # Just return the formatted list if not grouping
+        # NO GROUPING
+        if not group_by:
             display_data = format_entries_for_display(filtered_entries)
-            return jsonify({'displayData': display_data, 'fullDataMap': full_data_map})
+            return jsonify({'displayData': display_data, 'fullDataMap': full_data_map, 'isEndpointGroup': False})
+
+        # ENDPOINT GROUPING
+        if group_by == 'endpoint':
+            endpoint_groups = defaultdict(lambda: {
+                'methods': set(),
+                'statuses': defaultdict(int),
+                'count': 0,
+                'entries': []
+            })
+            for entry in filtered_entries:
+                url = entry.get('request', {}).get('url', '')
+                if not url: continue
+                try:
+                    parsed_url = urlparse(url)
+                    key = generalize_path(parsed_url.path)
+                    
+                    endpoint_groups[key]['methods'].add(entry.get('request', {}).get('method', 'N/A'))
+                    endpoint_groups[key]['statuses'][entry.get('response', {}).get('status', 0)] += 1
+                    endpoint_groups[key]['count'] += 1
+                    endpoint_groups[key]['entries'].append(entry)
+                except Exception:
+                    continue 
+            
+            display_groups = {}
+            for key, data in endpoint_groups.items():
+                methods = sorted(list(data['methods']))
+                status_summary = ', '.join([f"{status} ({count})" for status, count in sorted(data['statuses'].items())])
+                display_groups[key] = {
+                    'methods': methods,
+                    'statusSummary': status_summary,
+                    'count': data['count'],
+                    'entries': format_entries_for_display(data['entries'])
+                }
+            return jsonify({'displayData': display_groups, 'fullDataMap': full_data_map, 'isEndpointGroup': True})
+
+        # STANDARD GROUPING (method, content-type, etc.)
+        groups = defaultdict(list)
+        for entry in filtered_entries:
+            key = 'N/A'
+            if group_by == 'method':
+                key = entry.get('request', {}).get('method', 'N/A')
+            elif group_by == 'content-type':
+                mime_type = entry.get('response', {}).get('content', {}).get('mimeType', 'N/A')
+                simple_mime = mime_type.split(';')[0].split('/')[-1]
+                key = simple_mime if simple_mime else "unknown"
+            elif group_by == 'status':
+                status = entry.get('response', {}).get('status', 0)
+                key = f"{status // 100}xx" if status > 0 else "Status N/A"
+            elif group_by == 'domain':
+                url = entry.get('request', {}).get('url', '')
+                if url:
+                    try:
+                        key = urlparse(url).netloc
+                    except Exception:
+                        key = "Invalid URL"
+                else:
+                    key = "No URL"
+            groups[key].append(entry)
+        
+        display_groups = {k: format_entries_for_display(v) for k, v in groups.items()}
+        return jsonify({'displayData': display_groups, 'fullDataMap': full_data_map, 'isEndpointGroup': False})
 
     except json.JSONDecodeError:
         return jsonify({'error': 'Invalid JSON in HAR file. Check if the file is corrupted or incomplete.'}), 400
