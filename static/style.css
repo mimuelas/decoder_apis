@@ -104,7 +104,7 @@ h2 {
 #file-info {
     margin-top: 1rem;
     font-size: 0.9rem;
-    color: var(--success-color);
+    color: var(--primary-color);
 }
 
 .options-grid {
@@ -204,6 +204,17 @@ input:-webkit-autofill:active {
 
 #results-section {
     margin-top: 2rem;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+#results-section h2 {
+    margin: 0;
 }
 
 #results-container {
@@ -622,6 +633,22 @@ input:-webkit-autofill:active {
 }
 
 #download-response-btn:hover {
+    background-color: var(--primary-hover-color);
+}
+
+#download-har-btn {
+    background-color: var(--primary-color);
+    border: none;
+    color: #fff;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+#download-har-btn:hover {
     background-color: var(--primary-hover-color);
 }
 

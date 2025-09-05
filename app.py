@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, Response
 import json
 from collections import defaultdict
 import os
@@ -326,6 +326,37 @@ def upload_har():
         return jsonify({'error': 'Failed to decode the file. Please ensure it is UTF-8 encoded.'}), 400
     except Exception as e:
         return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
+
+@app.route('/download', methods=['POST'])
+def download_filtered_har():
+    try:
+        filtered_entries = request.get_json()
+        if not isinstance(filtered_entries, list):
+            return jsonify({'error': 'Invalid data format, expected a list of entries'}), 400
+
+        # Reconstruct the HAR structure
+        new_har_data = {
+            'log': {
+                'version': '1.2',
+                'creator': {
+                    'name': 'HAR Analyzer',
+                    'version': '1.0'
+                },
+                'entries': filtered_entries
+            }
+        }
+        
+        har_string = json.dumps(new_har_data, indent=2)
+
+        return Response(
+            har_string,
+            mimetype="application/json",
+            headers={"Content-disposition": "attachment; filename=filtered.har"}
+        )
+
+    except Exception as e:
+        return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
+
 
 if __name__ == '__main__':
     # Use a high port number to avoid conflicts
