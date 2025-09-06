@@ -305,12 +305,12 @@ input:-webkit-autofill:active {
 }
 
 /* Define column widths */
-.result-table th:nth-child(1) { width: 8%; }  /* Method */
+.result-table th:nth-child(1) { width: 12%; } /* Method */
 .result-table th:nth-child(2) { width: 8%; }  /* Status */
 .result-table th:nth-child(3) { width: 10%; } /* Time (ms) */
 .result-table th:nth-child(4) { width: 10%; } /* Size (B) */
 .result-table th:nth-child(5) { width: 12%; } /* MIME Type */
-.result-table th:nth-child(6) { width: 52%; } /* URL */
+.result-table th:nth-child(6) { width: 48%; } /* URL */
 
 .result-table thead {
     background-color: rgba(0,0,0,0.2);

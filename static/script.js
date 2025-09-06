@@ -115,7 +115,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentData = rawData.displayData;
             fullDataMap = rawData.fullDataMap;
-            sortCriteria = [];
+            // Set default sorting
+            sortCriteria = [
+                { key: 'method', direction: 'asc' },
+                { key: 'url', direction: 'asc' }
+            ];
             renderResults(currentData, rawData.isEndpointGroup);
 
             // Show/hide download button
@@ -506,9 +510,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 createCellWithDiv(groupRow, entry.status);
                 createCellWithDiv(groupRow, Math.round(entry.time));
                 createCellWithDiv(groupRow, entry.size === -1 ? 'N/A' : entry.size);
-                createCellWithDiv(groupRow, 'N/A'); // No single MIME type for a group
+                createCellWithDiv(groupRow, entry.mimeType);
                 createCellWithDiv(groupRow, entry.url, 'url');
                 
+                // Render sub-rows but keep them hidden
                 entry.subRows.forEach(subEntry => {
                     const subRow = tbody.insertRow();
                     subRow.className = 'sub-row hidden';

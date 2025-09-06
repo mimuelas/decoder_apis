@@ -265,8 +265,21 @@ def upload_har():
                 total_time = sum(e.get('time', 0) for e in entries_in_group)
                 total_size = sum(e.get('response', {}).get('content', {}).get('size', 0) for e in entries_in_group if e.get('response', {}).get('content', {}).get('size', -1) != -1)
                 
-                # Get unique status codes
+                # Get unique status codes and MIME types
                 statuses = {str(e.get('response', {}).get('status', 'N/A')) for e in entries_in_group}
+                
+                raw_mime_types = {
+                    e.get('response', {}).get('content', {}).get('mimeType', 'N/A').split(';')[0].split('/')[-1] or "unknown"
+                    for e in entries_in_group
+                }
+                # Filter out 'N/A' or 'unknown' if other valid types exist
+                valid_mime_types = {m for m in raw_mime_types if m not in ['N/A', 'unknown']}
+                if len(valid_mime_types) == 1:
+                    mime_type = valid_mime_types.pop()
+                elif len(valid_mime_types) > 1:
+                    mime_type = "Multiple"
+                else: # Only N/A or unknown found
+                    mime_type = "N/A"
 
                 display_data.append({
                     'isGroup': True,
@@ -277,6 +290,7 @@ def upload_har():
                     'status': ', '.join(sorted(list(statuses))),
                     'time': total_time / len(entries_in_group), # Average time
                     'size': total_size,
+                    'mimeType': mime_type,
                     'subRows': format_entries_for_display(entries_in_group)
                 })
             else:
