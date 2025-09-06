@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const domainSelectBox = document.getElementById('domain-select-box');
     const domainCheckboxes = document.getElementById('domain-checkboxes');
     const domainSelectText = document.querySelector('.select-text');
+    const clearFiltersBtn = document.getElementById('clear-filters-btn');
 
     let currentData = null;
     let fullDataMap = null;
@@ -112,6 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!currentData) {
                 populateDomainFilter(rawData.fullDataMap);
             }
+            // Always populate the domain filter on every analysis
+            populateDomainFilter(rawData.fullDataMap);
 
             currentData = rawData.displayData;
             fullDataMap = rawData.fullDataMap;
@@ -135,6 +138,21 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             spinner.classList.add('spinner-hidden');
         }
+    });
+
+    // --- Clear Filters ---
+    clearFiltersBtn.addEventListener('click', () => {
+        // Easiest way to reset standard form elements
+        form.reset();
+
+        // Special handling for the custom domain filter
+        domainCheckboxes.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
+        updateSelectedDomainText();
+
+        // You might want to optionally re-submit the form to show unfiltered results
+        // form.dispatchEvent(new Event('submit', { cancelable: true }));
     });
 
     // --- Download HAR Logic ---
@@ -247,7 +265,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (allDomains.length > 0) {
             domainFilterFieldset.classList.remove('hidden');
+        } else {
+            domainFilterFieldset.classList.add('hidden');
         }
+
+        // Reset selections and text
+        updateSelectedDomainText();
     }
 
     function getSelectedDomains() {

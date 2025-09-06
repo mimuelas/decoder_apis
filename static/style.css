@@ -66,6 +66,17 @@ body {
     grid-column: 2 / 3;
 }
 
+.options-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.options-header h2 {
+    margin: 0;
+}
+
 h2 {
     font-size: 1.5rem;
     font-weight: 600;
@@ -195,6 +206,23 @@ input:-webkit-autofill:active {
 
 .analyze-button:hover {
     background-color: var(--primary-hover-color);
+}
+
+.secondary-button {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color-light);
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.secondary-button:hover {
+    background-color: var(--border-color);
+    border-color: var(--primary-color);
 }
 
 /* Results Section */
