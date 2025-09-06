@@ -69,9 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Simple text/select fields by ID
         formData.append('error-filter', document.getElementById('error-filter').value);
         formData.append('url-contains', document.getElementById('url-contains').value);
-        formData.append('content-contains', document.getElementById('content-contains').value);
         formData.append('max-url-len', document.getElementById('max-url-len').value);
-        formData.append('group-by', document.getElementById('group-by').value);
 
         // 3. Checkboxes by name/ID
         document.querySelectorAll('input[name="method"]:checked').forEach(cb => {
@@ -80,9 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('input[name="content-type"]:checked').forEach(cb => {
             formData.append('content-type', cb.value);
         });
-        if (document.getElementById('content-regex').checked) {
-            formData.append('content-regex', document.getElementById('content-regex').value);
-        }
 
         // 4. Domains (handled by its own logic)
         const selectedDomains = getSelectedDomains();
@@ -351,37 +346,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (Array.isArray(data)) {
-            // Non-grouped results
+            // New logic handles both cases now, this branching is simplified
             if (data.length === 0) {
                  showNoResults();
                  return;
             }
             resultsContainer.appendChild(createTable(sortEntries(data)));
         } else {
-            // Grouped results
-            const groups = Object.keys(data).sort();
-             if (groups.length === 0) {
+            // This old logic for dictionary-based groups is now obsolete.
+            // The backend sends a single array with group/single entries.
+            // We'll keep this check for safety, but it shouldn't be triggered.
+             if (Object.keys(data).length === 0) {
                  showNoResults();
                  return;
             }
-            for (const groupName of groups) {
-                const entries = data[groupName];
-                const groupDiv = document.createElement('div');
-                groupDiv.className = 'result-group collapsed'; // Start collapsed
-                
-                const title = document.createElement('h3');
-                title.className = 'group-title';
-                title.textContent = `${groupName} (${entries.length} requests)`;
-                
-                title.addEventListener('click', () => {
-                    groupDiv.classList.toggle('collapsed');
-                });
-
-                groupDiv.appendChild(title);
-                
-                groupDiv.appendChild(createTable(sortEntries(entries)));
-                resultsContainer.appendChild(groupDiv);
-            }
+            // Assuming the new array structure is passed here too
+            resultsContainer.appendChild(createTable(sortEntries(Object.values(data).flat())));
         }
     }
 
@@ -503,35 +483,74 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Body
         const tbody = table.createTBody();
+        
+        const createCellWithDiv = (parentRow, text, className = '') => {
+            const cell = parentRow.insertCell();
+            const contentDiv = document.createElement('div');
+            contentDiv.textContent = text;
+            contentDiv.title = String(text); // Ensure title is always a string
+            cell.appendChild(contentDiv);
+            if (className) cell.className = className;
+            return cell;
+        };
+        
         entries.forEach(entry => {
-            const row = tbody.insertRow();
-            row.dataset.entryId = entry._id; // Set ID for click handling
-            
-            const createCellWithDiv = (text) => {
-                const cell = row.insertCell();
-                const contentDiv = document.createElement('div');
-                contentDiv.textContent = text;
-                contentDiv.title = text; // Add title attribute for tooltip
-                cell.appendChild(contentDiv);
-                return cell;
-            };
+            if (entry.isGroup) {
+                const groupRow = tbody.insertRow();
+                groupRow.className = 'group-row';
+                groupRow.dataset.groupKey = entry.groupKey;
 
-            createCellWithDiv(entry.method);
-            
-            const statusCell = createCellWithDiv(entry.status);
-            statusCell.className = entry.status >= 400 ? 'status-error' : 'status-success';
+                const methodCell = groupRow.insertCell();
+                methodCell.innerHTML = `<div title="${entry.method}"><span class="toggle">▶</span> ${entry.method} (${entry.count})</div>`;
 
-            createCellWithDiv(Math.round(entry.time));
-            createCellWithDiv(entry.size === -1 ? 'N/A' : entry.size);
-            createCellWithDiv(entry.mimeType || 'N/A');
-            
-            const urlCell = createCellWithDiv(entry.url);
-            urlCell.className = 'url';
+                createCellWithDiv(groupRow, entry.status);
+                createCellWithDiv(groupRow, Math.round(entry.time));
+                createCellWithDiv(groupRow, entry.size === -1 ? 'N/A' : entry.size);
+                createCellWithDiv(groupRow, 'N/A'); // No single MIME type for a group
+                createCellWithDiv(groupRow, entry.url, 'url');
+                
+                entry.subRows.forEach(subEntry => {
+                    const subRow = tbody.insertRow();
+                    subRow.className = 'sub-row hidden';
+                    subRow.dataset.groupKey = entry.groupKey;
+                    subRow.dataset.entryId = subEntry._id;
+
+                    createCellWithDiv(subRow, subEntry.method);
+                    const statusCell = createCellWithDiv(subRow, subEntry.status);
+                    statusCell.className = subEntry.status >= 400 ? 'status-error' : 'status-success';
+                    createCellWithDiv(subRow, Math.round(subEntry.time));
+                    createCellWithDiv(subRow, subEntry.size === -1 ? 'N/A' : subEntry.size);
+                    createCellWithDiv(subRow, subEntry.mimeType || 'N/A');
+                    createCellWithDiv(subRow, subEntry.url, 'url');
+                });
+
+            } else { // Single, non-grouped entry
+                const row = tbody.insertRow();
+                row.dataset.entryId = entry._id;
+
+                createCellWithDiv(row, entry.method);
+                const statusCell = createCellWithDiv(row, entry.status);
+                statusCell.className = entry.status >= 400 ? 'status-error' : 'status-success';
+                createCellWithDiv(row, Math.round(entry.time));
+                createCellWithDiv(row, entry.size === -1 ? 'N/A' : entry.size);
+                createCellWithDiv(row, entry.mimeType || 'N/A');
+                createCellWithDiv(row, entry.url, 'url');
+            }
         });
 
         tbody.addEventListener('click', (e) => {
             const row = e.target.closest('tr');
-            if (row && row.dataset.entryId) {
+            if (!row) return;
+
+            if (row.classList.contains('group-row')) {
+                row.classList.toggle('expanded');
+                const groupKey = row.dataset.groupKey;
+                const subRows = tbody.querySelectorAll(`tr.sub-row[data-group-key="${groupKey}"]`);
+                subRows.forEach(subRow => subRow.classList.toggle('hidden'));
+                return;
+            }
+
+            if (row.dataset.entryId) {
                 const entryId = row.dataset.entryId;
                 const fullEntry = fullDataMap[entryId];
                 if (fullEntry) {

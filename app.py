@@ -232,10 +232,7 @@ def upload_har():
             'method': request.form.getlist('method'),
             'content_type': request.form.getlist('content-type'),
             'url_contains': request.form.get('url-contains', ''),
-            'content_contains': request.form.get('content-contains', ''),
-            'is_regex': request.form.get('content-regex') == 'true',
             'max_url_len': max_url_len,
-            'group_by': request.form.get('group-by', ''),
             'domains': request.form.getlist('domains')
         }
         
@@ -251,74 +248,44 @@ def upload_har():
             )
             full_data_map[entry['_id']] = entry
         
-        # Grouping logic
-        group_by = options.get('group_by')
-
-        # NO GROUPING
-        if not group_by:
-            display_data = format_entries_for_display(filtered_entries)
-            return jsonify({'displayData': display_data, 'fullDataMap': full_data_map, 'isEndpointGroup': False})
-
-        # ENDPOINT GROUPING
-        if group_by == 'endpoint':
-            endpoint_groups = defaultdict(lambda: {
-                'methods': set(),
-                'statuses': defaultdict(int),
-                'count': 0,
-                'entries': []
-            })
-            for entry in filtered_entries:
-                url = entry.get('request', {}).get('url', '')
-                if not url: continue
-                try:
-                    parsed_url = urlparse(url)
-                    key = generalize_path(parsed_url.path)
-                    
-                    endpoint_groups[key]['methods'].add(entry.get('request', {}).get('method', 'N/A'))
-                    endpoint_groups[key]['statuses'][entry.get('response', {}).get('status', 0)] += 1
-                    endpoint_groups[key]['count'] += 1
-                    endpoint_groups[key]['entries'].append(entry)
-                except Exception:
-                    continue 
-            
-            display_groups = {}
-            for key, data in endpoint_groups.items():
-                methods = sorted(list(data['methods']))
-                status_summary = ', '.join([f"{status} ({count})" for status, count in sorted(data['statuses'].items())])
-                display_groups[key] = {
-                    'methods': methods,
-                    'statusSummary': status_summary,
-                    'count': data['count'],
-                    'entries': format_entries_for_display(data['entries'])
-                }
-            return jsonify({'displayData': display_groups, 'fullDataMap': full_data_map, 'isEndpointGroup': True})
-
-        # STANDARD GROUPING (method, content-type, etc.)
+        # --- New Grouping Logic (Mandatory) ---
         groups = defaultdict(list)
         for entry in filtered_entries:
-            key = 'N/A'
-            if group_by == 'method':
-                key = entry.get('request', {}).get('method', 'N/A')
-            elif group_by == 'content-type':
-                mime_type = entry.get('response', {}).get('content', {}).get('mimeType', 'N/A')
-                simple_mime = mime_type.split(';')[0].split('/')[-1]
-                key = simple_mime if simple_mime else "unknown"
-            elif group_by == 'status':
-                status = entry.get('response', {}).get('status', 0)
-                key = f"{status // 100}xx" if status > 0 else "Status N/A"
-            elif group_by == 'domain':
-                url = entry.get('request', {}).get('url', '')
-                if url:
-                    try:
-                        key = urlparse(url).netloc
-                    except Exception:
-                        key = "Invalid URL"
-                else:
-                    key = "No URL"
+            method = entry.get('request', {}).get('method', 'N/A')
+            url = entry.get('request', {}).get('url', 'N/A')
+            key = f"{method}::{url}"
             groups[key].append(entry)
-        
-        display_groups = {k: format_entries_for_display(v) for k, v in groups.items()}
-        return jsonify({'displayData': display_groups, 'fullDataMap': full_data_map, 'isEndpointGroup': False})
+
+        # Process groups into the final display data structure
+        display_data = []
+        for key, entries_in_group in groups.items():
+            if len(entries_in_group) > 1:
+                # This is a group, create an aggregated entry
+                first_entry = entries_in_group[0]
+                total_time = sum(e.get('time', 0) for e in entries_in_group)
+                total_size = sum(e.get('response', {}).get('content', {}).get('size', 0) for e in entries_in_group if e.get('response', {}).get('content', {}).get('size', -1) != -1)
+                
+                # Get unique status codes
+                statuses = {str(e.get('response', {}).get('status', 'N/A')) for e in entries_in_group}
+
+                display_data.append({
+                    'isGroup': True,
+                    'groupKey': key,
+                    'count': len(entries_in_group),
+                    'method': first_entry.get('request', {}).get('method', 'N/A'),
+                    'url': first_entry.get('request', {}).get('url', 'N/A'),
+                    'status': ', '.join(sorted(list(statuses))),
+                    'time': total_time / len(entries_in_group), # Average time
+                    'size': total_size,
+                    'subRows': format_entries_for_display(entries_in_group)
+                })
+            else:
+                # This is a single entry
+                formatted_entry = format_entries_for_display(entries_in_group)[0]
+                formatted_entry['isGroup'] = False
+                display_data.append(formatted_entry)
+
+        return jsonify({'displayData': display_data, 'fullDataMap': full_data_map})
 
     except json.JSONDecodeError:
         return jsonify({'error': 'Invalid JSON in HAR file. Check if the file is corrupted or incomplete.'}), 400
