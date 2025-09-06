@@ -67,22 +67,30 @@
                         <legend>Filter by URL</legend>
                         <input type="text" name="url-contains" id="url-contains" placeholder="e.g., /api/v1">
                     </fieldset>
-                    <fieldset class="full-width">
-                        <legend>Search in Response Body</legend>
-                        <div class="input-with-checkbox">
-                            <input type="text" name="content-contains" id="content-contains" placeholder="e.g., api_key, password, Bearer ...">
-                            <label class="regex-label">
-                                <input type="checkbox" name="content-regex" id="content-regex" value="true">
-                                <span>Regex</span>
-                            </label>
-                        </div>
-                    </fieldset>
                     <fieldset>
                         <legend>URL Length Limit</legend>
                         <input type="number" name="max-url-len" id="max-url-len" placeholder="e.g., 250" min="0">
                     </fieldset>
-                    <!-- Grouping -->
-
+                    <fieldset>
+                        <legend>Group By</legend>
+                        <select name="group-by" id="group-by">
+                            <option value="">None</option>
+                            <option value="method">Method</option>
+                            <option value="content-type">Content Type</option>
+                            <option value="status">Status Code</option>
+                            <option value="domain">Domain</option>
+                        </select>
+                    </fieldset>
+                    <fieldset>
+                        <legend>Search in Response Body</legend>
+                        <div class="input-with-checkbox">
+                            <input type="text" name="content-contains" id="content-contains" placeholder="e.g., user_id">
+                            <label class="regex-label" title="Use regular expressions for advanced searching">
+                                <input type="checkbox" name="content-regex" id="content-regex" value="true">
+                                Regex
+                            </label>
+                        </div>
+                    </fieldset>
                     <!-- Domain Filter -->
                     <fieldset id="domain-filter-fieldset" class="hidden full-width">
                         <legend>Filter by Domain</legend>

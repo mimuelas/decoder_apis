@@ -99,6 +99,8 @@ def analyze_har_data(har_data: dict, args: dict) -> list:
     # Pre-process filters for efficiency
     methods_to_check = {m.upper() for m in args.get('method', [])}
     content_types_to_check = {ct.lower() for ct in args.get('content_type', [])}
+    content_contains_text = args.get('content_contains', '').lower()
+    is_regex = args.get('is_regex', False)
 
     for entry in entries_with_id:
         request = entry.get('request', {})
@@ -140,34 +142,23 @@ def analyze_har_data(har_data: dict, args: dict) -> list:
         max_len = args.get('max_url_len')
         if max_len is not None and len(url) > max_len:
             continue
-        
-        # Filter by response content
-        search_term = args.get('content_contains')
-        if search_term:
-            content_text = content.get('text', '')
-            if content_text:
-                # Handle base64 encoding
-                if content.get('encoding') == 'base64':
-                    try:
-                        content_text = base64.b64decode(content_text).decode('utf-8', 'ignore')
-                    except Exception:
-                        content_text = '' # Could not decode
 
-                is_regex = args.get('is_regex', False)
-                try:
-                    if is_regex:
-                        if not re.search(search_term, content_text, re.IGNORECASE):
-                            continue
-                    else:
-                        if search_term.lower() not in content_text.lower():
-                            continue
-                except re.error:
-                    # Invalid regex, treat as a failed match
-                    continue
-            else:
-                # No content to search in
+        # Filter by response body content
+        if content_contains_text:
+            text = response.get('content', {}).get('text', '')
+            if not text:
+                continue # Skip if no content to search
+            
+            try:
+                if is_regex:
+                    if not re.search(content_contains_text, text, re.IGNORECASE):
+                        continue
+                else:
+                    if content_contains_text not in text.lower():
+                        continue
+            except re.error:
+                # Silently ignore invalid regex, or we could pass an error to the user
                 continue
-
 
         filtered_entries.append(entry)
 
@@ -196,6 +187,60 @@ def format_entries_for_display(entries: list) -> list:
             'mimeType': simple_mime if simple_mime else "unknown"
         })
     return formatted
+
+def perform_row_level_aggregation(entries_list: list) -> list:
+    """Takes a list of entries and groups them by method + URL."""
+    groups = defaultdict(list)
+    for entry in entries_list:
+        method = entry.get('request', {}).get('method', 'N/A')
+        url = entry.get('request', {}).get('url', 'N/A')
+        key = f"{method}::{url}"
+        groups[key].append(entry)
+
+    # Process groups into the final display data structure
+    display_data = []
+    for key, entries_in_group in groups.items():
+        if len(entries_in_group) > 1:
+            # This is a group, create an aggregated entry
+            first_entry = entries_in_group[0]
+            total_time = sum(e.get('time', 0) for e in entries_in_group)
+            total_size = sum(e.get('response', {}).get('content', {}).get('size', 0) for e in entries_in_group if e.get('response', {}).get('content', {}).get('size', -1) != -1)
+            
+            # Get unique status codes and MIME types
+            statuses = {str(e.get('response', {}).get('status', 'N/A')) for e in entries_in_group}
+            
+            raw_mime_types = {
+                e.get('response', {}).get('content', {}).get('mimeType', 'N/A').split(';')[0].split('/')[-1] or "unknown"
+                for e in entries_in_group
+            }
+            # Filter out 'N/A' or 'unknown' if other valid types exist
+            valid_mime_types = {m for m in raw_mime_types if m not in ['N/A', 'unknown']}
+            if len(valid_mime_types) == 1:
+                mime_type = valid_mime_types.pop()
+            elif len(valid_mime_types) > 1:
+                mime_type = "Multiple"
+            else: # Only N/A or unknown found
+                mime_type = "N/A"
+
+            display_data.append({
+                'isGroup': True,
+                'groupKey': key,
+                'count': len(entries_in_group),
+                'method': first_entry.get('request', {}).get('method', 'N/A'),
+                'url': first_entry.get('request', {}).get('url', 'N/A'),
+                'status': ', '.join(sorted(list(statuses))),
+                'time': total_time / len(entries_in_group), # Average time
+                'size': total_size,
+                'mimeType': mime_type,
+                'subRows': format_entries_for_display(entries_in_group)
+            })
+        else:
+            # This is a single entry
+            formatted_entry = format_entries_for_display(entries_in_group)[0]
+            formatted_entry['isGroup'] = False
+            display_data.append(formatted_entry)
+    
+    return display_data
 
 # --- Flask App ---
 
@@ -232,7 +277,10 @@ def upload_har():
             'method': request.form.getlist('method'),
             'content_type': request.form.getlist('content-type'),
             'url_contains': request.form.get('url-contains', ''),
+            'content_contains': request.form.get('content-contains', ''),
+            'is_regex': request.form.get('content-regex') == 'true',
             'max_url_len': max_url_len,
+            'group_by': request.form.get('group-by', ''),
             'domains': request.form.getlist('domains')
         }
         
@@ -248,58 +296,42 @@ def upload_har():
             )
             full_data_map[entry['_id']] = entry
         
-        # --- New Grouping Logic (Mandatory) ---
-        groups = defaultdict(list)
-        for entry in filtered_entries:
-            method = entry.get('request', {}).get('method', 'N/A')
-            url = entry.get('request', {}).get('url', 'N/A')
-            key = f"{method}::{url}"
-            groups[key].append(entry)
+        # --- New Combined Grouping Logic ---
+        group_by = options.get('group_by')
 
-        # Process groups into the final display data structure
-        display_data = []
-        for key, entries_in_group in groups.items():
-            if len(entries_in_group) > 1:
-                # This is a group, create an aggregated entry
-                first_entry = entries_in_group[0]
-                total_time = sum(e.get('time', 0) for e in entries_in_group)
-                total_size = sum(e.get('response', {}).get('content', {}).get('size', 0) for e in entries_in_group if e.get('response', {}).get('content', {}).get('size', -1) != -1)
-                
-                # Get unique status codes and MIME types
-                statuses = {str(e.get('response', {}).get('status', 'N/A')) for e in entries_in_group}
-                
-                raw_mime_types = {
-                    e.get('response', {}).get('content', {}).get('mimeType', 'N/A').split(';')[0].split('/')[-1] or "unknown"
-                    for e in entries_in_group
-                }
-                # Filter out 'N/A' or 'unknown' if other valid types exist
-                valid_mime_types = {m for m in raw_mime_types if m not in ['N/A', 'unknown']}
-                if len(valid_mime_types) == 1:
-                    mime_type = valid_mime_types.pop()
-                elif len(valid_mime_types) > 1:
-                    mime_type = "Multiple"
-                else: # Only N/A or unknown found
-                    mime_type = "N/A"
+        if not group_by:
+            # No top-level grouping, just perform row-level aggregation on the whole list
+            display_data = perform_row_level_aggregation(filtered_entries)
+            return jsonify({'displayData': display_data, 'fullDataMap': full_data_map})
+        else:
+            # Perform top-level grouping first
+            top_level_groups = defaultdict(list)
+            for entry in filtered_entries:
+                key = 'N/A'
+                if group_by == 'method':
+                    key = entry.get('request', {}).get('method', 'N/A')
+                elif group_by == 'content-type':
+                    mime_type = entry.get('response', {}).get('content', {}).get('mimeType', 'N/A')
+                    simple_mime = mime_type.split(';')[0].split('/')[-1]
+                    key = simple_mime if simple_mime else "unknown"
+                elif group_by == 'status':
+                    status = entry.get('response', {}).get('status', 0)
+                    key = f"{status // 100}xx" if status > 0 else "Status N/A"
+                elif group_by == 'domain':
+                    url = entry.get('request', {}).get('url', '')
+                    if url:
+                        try: key = urlparse(url).netloc
+                        except Exception: key = "Invalid URL"
+                    else: key = "No URL"
+                top_level_groups[key].append(entry)
+            
+            # Then, for each top-level group, perform row-level aggregation
+            display_groups = {
+                key: perform_row_level_aggregation(entries)
+                for key, entries in top_level_groups.items()
+            }
+            return jsonify({'displayData': display_groups, 'fullDataMap': full_data_map})
 
-                display_data.append({
-                    'isGroup': True,
-                    'groupKey': key,
-                    'count': len(entries_in_group),
-                    'method': first_entry.get('request', {}).get('method', 'N/A'),
-                    'url': first_entry.get('request', {}).get('url', 'N/A'),
-                    'status': ', '.join(sorted(list(statuses))),
-                    'time': total_time / len(entries_in_group), # Average time
-                    'size': total_size,
-                    'mimeType': mime_type,
-                    'subRows': format_entries_for_display(entries_in_group)
-                })
-            else:
-                # This is a single entry
-                formatted_entry = format_entries_for_display(entries_in_group)[0]
-                formatted_entry['isGroup'] = False
-                display_data.append(formatted_entry)
-
-        return jsonify({'displayData': display_data, 'fullDataMap': full_data_map})
 
     except json.JSONDecodeError:
         return jsonify({'error': 'Invalid JSON in HAR file. Check if the file is corrupted or incomplete.'}), 400

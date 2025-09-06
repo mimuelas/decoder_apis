@@ -79,6 +79,11 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('error-filter', document.getElementById('error-filter').value);
         formData.append('url-contains', document.getElementById('url-contains').value);
         formData.append('max-url-len', document.getElementById('max-url-len').value);
+        formData.append('group-by', document.getElementById('group-by').value);
+        formData.append('content-contains', document.getElementById('content-contains').value);
+        if (document.getElementById('content-regex').checked) {
+            formData.append('content-regex', 'true');
+        }
 
         // 3. Checkboxes by name/ID
         document.querySelectorAll('input[name="method"]:checked').forEach(cb => {
@@ -431,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         updateSelectedDomainText();
         // Trigger form submission to re-filter
-        form.dispatchEvent(new Event('submit', { cancelable: true }));
+        // form.dispatchEvent(new Event('submit', { cancelable: true }));
     });
 
     function updateSelectedDomainText() {
@@ -482,35 +487,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Render Results ---
-    function renderResults(data, isEndpointGroup = false) {
+    function renderResults(data) {
         resultsContainer.innerHTML = ''; // Clear for re-rendering
 
         function showNoResults() {
             resultsContainer.innerHTML = '<p>No matching requests found.</p>';
         }
 
-        if (isEndpointGroup) {
-            renderEndpointResults(data);
-            return;
-        }
-
         if (Array.isArray(data)) {
-            // New logic handles both cases now, this branching is simplified
+            // Flat view (no top-level groups)
             if (data.length === 0) {
-                 showNoResults();
-                 return;
+                showNoResults();
+                return;
             }
             resultsContainer.appendChild(createTable(sortEntries(data)));
         } else {
-            // This old logic for dictionary-based groups is now obsolete.
-            // The backend sends a single array with group/single entries.
-            // We'll keep this check for safety, but it shouldn't be triggered.
-             if (Object.keys(data).length === 0) {
-                 showNoResults();
-                 return;
+            // Grouped view
+            const groups = Object.keys(data).sort();
+            if (groups.length === 0) {
+                showNoResults();
+                return;
             }
-            // Assuming the new array structure is passed here too
-            resultsContainer.appendChild(createTable(sortEntries(Object.values(data).flat())));
+            for (const groupName of groups) {
+                const entries = data[groupName];
+                if (entries.length === 0) continue;
+
+                // Calculate total requests in this group
+                const totalRequestsInGroup = entries.reduce((acc, entry) => acc + (entry.isGroup ? entry.count : 1), 0);
+
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'result-group collapsed';
+                
+                const title = document.createElement('h3');
+                title.className = 'group-title';
+                title.textContent = `${groupName} (${totalRequestsInGroup} requests)`;
+                
+                title.addEventListener('click', () => {
+                    groupDiv.classList.toggle('collapsed');
+                });
+
+                groupDiv.appendChild(title);
+                
+                const tableContainer = document.createElement('div');
+                tableContainer.appendChild(createTable(sortEntries(entries)));
+                groupDiv.appendChild(tableContainer);
+                resultsContainer.appendChild(groupDiv);
+            }
         }
     }
 
