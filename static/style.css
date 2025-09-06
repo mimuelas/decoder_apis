@@ -473,6 +473,28 @@ input:-webkit-autofill:active {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.modal-footer .analyze-button {
+    width: auto;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+}
+
+.modal-close-button {
+    background: none;
+    border: none;
+    color: var(--text-color-light);
+    font-size: 2rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -714,4 +736,63 @@ input:-webkit-autofill:active {
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.9rem;
     margin: 0;
+}
+
+#download-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.download-option-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    background-color: var(--bg-color);
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.download-option-item .endpoint-info {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.download-option-item select {
+    min-width: 200px;
+}
+
+.manual-selection-list {
+    grid-column: 1 / -1; /* Span across both columns */
+    padding-left: 2rem;
+    padding-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.manual-selection-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.download-options-global-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.download-options-global-actions span {
+    font-weight: 500;
 }

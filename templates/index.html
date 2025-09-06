@@ -147,5 +147,28 @@
             </div>
         </div>
     </div>
+
+    <div id="download-options-modal" class="modal-hidden">
+        <div id="modal-overlay"></div>
+        <div id="modal-content">
+            <div class="modal-header">
+                <h2>Download Options</h2>
+                <button id="download-options-close-btn" class="modal-close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Some requests were grouped. Choose how many instances to include in the downloaded .HAR file.</p>
+                <div class="download-options-global-actions">
+                    <span>Apply to all:</span>
+                    <button type="button" class="secondary-button" data-action="all">Include All</button>
+                    <button type="button" class="secondary-button" data-action="first">Include First</button>
+                    <button type="button" class="secondary-button" data-action="manual">Select Manually</button>
+                </div>
+                <div id="download-options-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="download-confirm-btn" class="analyze-button">Download</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

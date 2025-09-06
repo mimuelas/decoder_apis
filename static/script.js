@@ -14,6 +14,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const domainSelectText = document.querySelector('.select-text');
     const clearFiltersBtn = document.getElementById('clear-filters-btn');
 
+    // New Download Options Modal elements
+    const downloadOptionsModal = document.getElementById('download-options-modal');
+    const downloadOptionsCloseBtn = document.getElementById('download-options-close-btn');
+    const downloadConfirmBtn = document.getElementById('download-confirm-btn');
+    const downloadOptionsList = document.getElementById('download-options-list');
+    const downloadOptionsModalOverlay = downloadOptionsModal.querySelector('#modal-overlay');
+    const globalActionsContainer = document.querySelector('.download-options-global-actions');
+
     let currentData = null;
     let fullDataMap = null;
     let sortCriteria = []; // Array of {key: string, direction: 'asc' | 'desc'}
@@ -162,31 +170,112 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let filteredEntryIds = [];
-        if (Array.isArray(currentData)) {
-            // Non-grouped data
-            filteredEntryIds = currentData.map(entry => entry._id);
+        const groupedEntries = currentData.filter(e => e.isGroup);
+
+        if (groupedEntries.length > 0) {
+            // Groups exist, so we must open the options modal
+            populateDownloadOptionsModal(groupedEntries);
+            downloadOptionsModal.classList.remove('modal-hidden');
         } else {
-            // Grouped data
-            for (const groupName in currentData) {
-                const ids = currentData[groupName].map(entry => entry._id);
-                filteredEntryIds.push(...ids);
-            }
+            // No groups, download all visible entries directly
+            downloadWithSelections({});
+        }
+    });
+
+    function populateDownloadOptionsModal(groupedEntries) {
+        downloadOptionsList.innerHTML = ''; // Clear previous options
+        groupedEntries.forEach(group => {
+            const item = document.createElement('div');
+            item.className = 'download-option-item';
+            item.dataset.groupKey = group.groupKey;
+
+            const info = document.createElement('div');
+            info.className = 'endpoint-info';
+            info.textContent = `${group.method} ${group.url}`;
+            info.title = `${group.method} ${group.url}`;
+
+            const select = document.createElement('select');
+            select.innerHTML = `
+                <option value="all" selected>Include all ${group.count} requests</option>
+                <option value="first">Include only the first request</option>
+                <option value="manual">Select manually...</option>
+            `;
+
+            // Event listener to show/hide manual selection
+            select.addEventListener('change', () => {
+                toggleManualSelection(item, select.value, group);
+            });
+
+            item.appendChild(info);
+            item.appendChild(select);
+            downloadOptionsList.appendChild(item);
+        });
+    }
+
+    function toggleManualSelection(itemElement, selectedValue, groupData) {
+        // Remove existing manual selection list if it exists
+        const existingList = itemElement.querySelector('.manual-selection-list');
+        if (existingList) {
+            existingList.remove();
         }
 
-        if (filteredEntryIds.length === 0) {
-            alert('No entries to download.');
+        if (selectedValue === 'manual') {
+            const list = document.createElement('div');
+            list.className = 'manual-selection-list';
+
+            groupData.subRows.forEach((sub, index) => {
+                const label = document.createElement('label');
+                label.className = 'manual-selection-item';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.entryId = sub._id;
+                checkbox.checked = (index === 0); // Check the first one by default
+
+                const statusClass = sub.status >= 400 ? 'status-error' : 'status-success';
+                label.innerHTML = `
+                    <span class="${statusClass}">${sub.status}</span>
+                    <span>${Math.round(sub.time)}ms</span>
+                    <span>${sub.size === -1 ? 'N/A' : sub.size + 'B'}</span>
+                `;
+
+                label.prepend(checkbox);
+                list.appendChild(label);
+            });
+
+            itemElement.appendChild(list);
+        }
+    }
+
+    async function downloadWithSelections(selections) {
+        let entriesToDownloadIds = [];
+
+        currentData.forEach(entry => {
+            if (entry.isGroup) {
+                const selectionInfo = selections[entry.groupKey];
+                if (selectionInfo.choice === 'first') {
+                    entriesToDownloadIds.push(entry.subRows[0]._id);
+                } else if (selectionInfo.choice === 'manual') {
+                    entriesToDownloadIds.push(...selectionInfo.selectedIds);
+                } else { // Default to 'all'
+                    entry.subRows.forEach(sub => entriesToDownloadIds.push(sub._id));
+                }
+            } else {
+                // It's a single entry, always include it
+                entriesToDownloadIds.push(entry._id);
+            }
+        });
+
+        if (entriesToDownloadIds.length === 0) {
+            alert('No entries selected for download.');
             return;
         }
 
-        const uniqueIds = [...new Set(filteredEntryIds)];
+        const uniqueIds = [...new Set(entriesToDownloadIds)];
         const entriesToDownload = uniqueIds.map(id => fullDataMap[id]);
         
-        // Remove our internal '_id' before sending back to the server
         const cleanedEntries = entriesToDownload.map(entry => {
             const newEntry = {...entry};
             delete newEntry._id;
-            // Also remove other frontend-specific fields if they exist
             delete newEntry.curl;
             delete newEntry.fileExtension;
             return newEntry;
@@ -195,9 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/download', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(cleanedEntries),
             });
 
@@ -208,18 +295,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = 'filtered.har'; // Fallback filename
-            document.body.appendChild(a);
-            a.click();
+            triggerDownload(url, 'filtered.har');
             window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
 
         } catch (error) {
             console.error('Download error:', error);
             alert(`Could not download file: ${error.message}`);
+        }
+    }
+
+    // --- Download Options Modal Logic ---
+    downloadConfirmBtn.addEventListener('click', () => {
+        const selections = {};
+        downloadOptionsList.querySelectorAll('.download-option-item').forEach(item => {
+            const key = item.dataset.groupKey;
+            const choice = item.querySelector('select').value;
+            
+            let selectedIds = [];
+            if (choice === 'manual') {
+                item.querySelectorAll('.manual-selection-list input[type="checkbox"]:checked').forEach(cb => {
+                    selectedIds.push(parseInt(cb.dataset.entryId, 10));
+                });
+            }
+            
+            selections[key] = { choice, selectedIds };
+        });
+        downloadWithSelections(selections);
+        downloadOptionsModal.classList.add('modal-hidden');
+    });
+
+    function closeDownloadOptionsModal() {
+        downloadOptionsModal.classList.add('modal-hidden');
+    }
+
+    downloadOptionsCloseBtn.addEventListener('click', closeDownloadOptionsModal);
+    downloadOptionsModalOverlay.addEventListener('click', closeDownloadOptionsModal);
+
+    globalActionsContainer.addEventListener('click', (e) => {
+        if (e.target.matches('button[data-action]')) {
+            const action = e.target.dataset.action;
+            downloadOptionsList.querySelectorAll('.download-option-item').forEach(item => {
+                const select = item.querySelector('select');
+                if (select.value !== action) {
+                    select.value = action;
+                    // Manually dispatch a 'change' event to trigger the manual selection logic
+                    select.dispatchEvent(new Event('change'));
+                }
+            });
         }
     });
 
