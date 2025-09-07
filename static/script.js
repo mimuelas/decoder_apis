@@ -914,7 +914,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (mimeType.includes('html') && content.text) {
             previewTabBtn.disabled = false;
             const iframe = document.createElement('iframe');
-            iframe.srcdoc = content.text;
+            let htmlContent = content.text;
+            if (content.encoding === 'base64') {
+                try { htmlContent = atob(htmlContent); }
+                catch (e) { htmlContent = '[Error: Could not decode base64 content]'; }
+            }
+            iframe.srcdoc = htmlContent;
             iframe.className = 'response-preview-iframe';
             iframe.sandbox = ''; // Sandbox for security
             previewPane.appendChild(iframe);

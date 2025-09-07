@@ -145,10 +145,18 @@ def analyze_har_data(har_data: dict, args: dict) -> list:
 
         # Filter by response body content
         if content_contains_text:
-            text = response.get('content', {}).get('text', '')
+            content = response.get('content', {})
+            text = content.get('text', '')
             if not text:
                 continue # Skip if no content to search
             
+            # Handle base64 encoded content before searching
+            if content.get('encoding') == 'base64':
+                try:
+                    text = base64.b64decode(text).decode('utf-8', 'ignore')
+                except Exception:
+                    continue # Could not decode, skip
+
             try:
                 if is_regex:
                     if not re.search(content_contains_text, text, re.IGNORECASE):
