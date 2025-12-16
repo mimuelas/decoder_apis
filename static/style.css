@@ -1,3 +1,7 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 :root {
     --bg-color: #1a1b26;
     --card-color: #24283b;
@@ -18,6 +22,8 @@ body {
     margin: 0;
     padding: 2rem;
     font-size: 16px;
+    overflow-x: hidden; /* Prevent horizontal scrollbars */
+    word-wrap: break-word; /* Handle long strings */
 }
 
 .container {
@@ -56,14 +62,6 @@ body {
     grid-template-columns: 1fr 2fr;
     gap: 1.5rem;
     margin-bottom: 2.5rem;
-}
-
-.file-upload-card {
-    grid-column: 1 / 2;
-}
-
-.options-card {
-    grid-column: 2 / 3;
 }
 
 .options-header {
@@ -397,9 +395,103 @@ input:-webkit-autofill:active {
     to { transform: rotate(360deg); }
 }
 
-@media (max-width: 900px) {
+/* --- Responsive Design --- */
+
+/* Medium screens (tablets) */
+@media (max-width: 1024px) {
     .controls-grid {
         grid-template-columns: 1fr;
+    }
+
+    #modal-content {
+        width: 90%;
+    }
+}
+
+/* Small screens (mobile) */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem;
+    }
+
+    .container {
+        padding: 0;
+    }
+
+    .main-header h1 {
+        font-size: 2rem;
+    }
+
+    .main-header p {
+        font-size: 1rem;
+    }
+
+    .card {
+        padding: 1rem 1.5rem;
+    }
+
+    .controls-grid {
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .options-grid {
+        grid-template-columns: 1fr; /* Stack options */
+    }
+
+    #results-container {
+        overflow-x: auto; /* Allow table to scroll horizontally */
+    }
+
+    .result-table {
+        min-width: 800px; /* Force table to be wide */
+    }
+    
+    .result-table th, .result-table td {
+        padding: 0.75rem 1rem;
+    }
+
+    #modal-content {
+        width: 95%;
+        height: 85vh;
+    }
+
+    .modal-body {
+        padding: 1rem;
+    }
+
+    .modal-tabs {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .modal-tabs > div {
+        display: flex;
+        overflow-x: auto; /* Make tabs scrollable */
+        padding-bottom: 5px;
+    }
+
+    .modal-tab-btn {
+        white-space: nowrap;
+    }
+
+    #download-response-btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    .detail-grid dt {
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+    }
+    .detail-grid dd {
+        margin-bottom: 0.75rem;
+        padding-left: 0.5rem;
     }
 }
 
