@@ -252,13 +252,13 @@ def perform_row_level_aggregation(entries_list: list) -> list:
 
 # --- Flask App ---
 
-app = Flask(__name__)
+application = Flask(__name__)
 
-@app.route('/')
+@application.route('/')
 def index():
     return render_template('index.html', version=time.time())
 
-@app.route('/upload', methods=['POST'])
+@application.route('/upload', methods=['POST'])
 def upload_har():
     if 'har_file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
@@ -348,7 +348,7 @@ def upload_har():
     except Exception as e:
         return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
 
-@app.route('/download', methods=['POST'])
+@application.route('/download', methods=['POST'])
 def download_filtered_har():
     try:
         filtered_entries = request.get_json()
@@ -382,4 +382,6 @@ def download_filtered_har():
 if __name__ == '__main__':
     # Use a high port number to avoid conflicts
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    application.run(host='0.0.0.0', port=port, debug=True)
+
+
