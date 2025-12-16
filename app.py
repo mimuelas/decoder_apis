@@ -8,6 +8,7 @@ import mimetypes
 import re
 import base64
 import time
+import logging
 
 # --- Path Generalization ---
 
@@ -254,6 +255,16 @@ def perform_row_level_aggregation(entries_list: list) -> list:
 
 app = Flask(__name__)
 
+# --- Production-Ready Logging ---
+if not app.debug:
+    # Configure logging to a file
+    handler = logging.FileHandler('app.log')
+    handler.setLevel(logging.ERROR) # Log only errors and critical issues
+    # Create a formatter and set it for the handler
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    app.logger.addHandler(handler)
+
 @app.route('/')
 def index():
     return render_template('index.html', version=time.time())
@@ -346,7 +357,9 @@ def upload_har():
     except UnicodeDecodeError:
         return jsonify({'error': 'Failed to decode the file. Please ensure it is UTF-8 encoded.'}), 400
     except Exception as e:
-        return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
+        app.logger.error(f"An unexpected error occurred during file upload: {e}", exc_info=True)
+        return jsonify({'error': 'An unexpected error occurred.'}), 500
+
 
 @app.route('/download', methods=['POST'])
 def download_filtered_har():
@@ -376,10 +389,15 @@ def download_filtered_har():
         )
 
     except Exception as e:
-        return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
+        app.logger.error(f"An unexpected error occurred during file download: {e}", exc_info=True)
+        return jsonify({'error': 'An unexpected error occurred.'}), 500
+
 
 
 if __name__ == '__main__':
+    # Production-ready configuration
+    is_debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    
     # Use a high port number to avoid conflicts
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=is_debug)
