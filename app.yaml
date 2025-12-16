@@ -1,4 +1,4 @@
-runtime: python39 # O la versión que prefieras, ej: python38
+runtime: python311 # O la versión que prefieras, ej: python38
 
 entrypoint: gunicorn -b :$PORT app:app
 
