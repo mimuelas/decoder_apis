@@ -267,7 +267,8 @@ if not app.debug:
 
 @app.route('/')
 def index():
-    return render_template('index.html', version=time.time())
+    ga_id = os.environ.get('GOOGLE_ANALYTICS_ID')
+    return render_template('index.html', version=time.time(), ga_id=ga_id)
 
 @app.route('/upload', methods=['POST'])
 def upload_har():

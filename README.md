@@ -70,4 +70,56 @@ Sigue estos pasos para poner en marcha la aplicación en tu entorno local.
     Una vez que el servidor esté corriendo, visita la siguiente URL en tu navegador:
     [http://localhost:8080](http://localhost:8080)
 
+## Despliegue en Google Cloud con App Engine
+
+Esta aplicación está lista para ser desplegada en Google Cloud Platform (GCP) utilizando App Engine.
+
+### Prerrequisitos
+
+- Tener una cuenta de Google Cloud con un proyecto activo.
+- Tener la [CLI de Google Cloud (`gcloud`)](https://cloud.google.com/sdk/docs/install) instalada y configurada.
+
+### Pasos para el Despliegue
+
+1.  **Autenticación y Configuración del Proyecto**
+
+    Asegúrate de que tu CLI esté autenticada y apuntando al proyecto correcto.
+
+    ```bash
+    # Autentícate con tu cuenta de Google
+    gcloud auth login
+
+    # Establece el proyecto en el que quieres desplegar
+    gcloud config set project TU_ID_DE_PROYECTO
+    ```
+
+2.  **Configurar Google Analytics (Opcional)**
+
+    Si quieres usar Google Analytics, abre el archivo `app.yaml` y añade tu ID de Medición. Descomenta y edita la siguiente línea:
+
+    ```yaml
+    # app.yaml
+    env_variables:
+      # GOOGLE_ANALYTICS_ID: "G-XXXXXXXXXX"
+      FLASK_ENV: "production"
+    ```
+
+3.  **Desplegar la Aplicación**
+
+    Desde la raíz de tu proyecto (donde se encuentra `app.yaml`), ejecuta el siguiente comando:
+
+    ```bash
+    gcloud app deploy
+    ```
+
+    La CLI de `gcloud` se encargará de empaquetar tu código, subirlo a Google Cloud y desplegarlo.
+
+4.  **Abrir la Aplicación Desplegada**
+
+    Una vez que el despliegue haya finalizado, puedes abrir la aplicación en tu navegador con el siguiente comando:
+
+    ```bash
+    gcloud app browse
+    ```
+
 
