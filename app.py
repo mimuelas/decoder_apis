@@ -257,8 +257,8 @@ app = Flask(__name__)
 
 # --- Production-Ready Logging ---
 if not app.debug:
-    # Configure logging to a file
-    handler = logging.FileHandler('app.log')
+    # Configure logging to stdout/stderr (Google Cloud captures this automatically)
+    handler = logging.StreamHandler()
     handler.setLevel(logging.ERROR) # Log only errors and critical issues
     # Create a formatter and set it for the handler
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
