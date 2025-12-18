@@ -254,6 +254,8 @@ def perform_row_level_aggregation(entries_list: list) -> list:
 # --- Flask App ---
 
 app = Flask(__name__)
+# Configurar límite de subida de archivos a 25MB (Límite seguro para instancia F1 con 256MB RAM)
+app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 25 Megabytes
 
 # --- Production-Ready Logging ---
 if not app.debug:
@@ -269,6 +271,30 @@ if not app.debug:
 def index():
     ga_id = os.environ.get('GOOGLE_ANALYTICS_ID')
     return render_template('index.html', version=time.time(), ga_id=ga_id)
+
+@app.route('/privacy')
+def privacy():
+    ga_id = os.environ.get('GOOGLE_ANALYTICS_ID')
+    return render_template('privacy.html', version=time.time(), ga_id=ga_id)
+
+@app.route('/terms')
+def terms():
+    ga_id = os.environ.get('GOOGLE_ANALYTICS_ID')
+    return render_template('terms.html', version=time.time(), ga_id=ga_id)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    ga_id = os.environ.get('GOOGLE_ANALYTICS_ID')
+    return render_template('404.html', ga_id=ga_id), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    ga_id = os.environ.get('GOOGLE_ANALYTICS_ID')
+    return render_template('500.html', ga_id=ga_id), 500
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    return jsonify({'error': 'El archivo es demasiado grande. El límite es de 25MB.'}), 413
 
 @app.route('/upload', methods=['POST'])
 def upload_har():

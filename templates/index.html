@@ -1,25 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HAR Analyzer</title>
+    <title>HAR Analyzer - Analizador de Archivos HAR Online Gratis</title>
+    <meta name="description"
+        content="Herramienta gratuita para visualizar, analizar y depurar archivos .HAR. Filtra peticiones HTTP, inspecciona cabeceras y exporta a cURL. Ideal para desarrolladores y QA.">
+    <meta name="keywords"
+        content="HAR analyzer, har viewer, analizar archivo har, depurar red, http debugger, har to curl">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://haranalyzer.es/">
+    <meta property="og:title" content="HAR Analyzer - Analizador de Archivos HAR Online">
+    <meta property="og:description"
+        content="Visualiza y analiza logs de red fácilmente. Sube tu archivo .HAR y depura tus peticiones HTTP en segundos.">
+    <meta property="og:image" content="https://haranalyzer.es/static/og-image.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://haranalyzer.es/">
+    <meta property="twitter:title" content="HAR Analyzer - Analizador de Archivos HAR Online">
+    <meta property="twitter:description"
+        content="Visualiza y analiza logs de red fácilmente. Sube tu archivo .HAR y depura tus peticiones HTTP en segundos.">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=version) }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     {% if ga_id %}
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id }}"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', '{{ ga_id }}');
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', '{{ ga_id }}');
     </script>
     {% endif %}
 </head>
+
 <body>
     <div class="container">
         <header class="main-header">
@@ -64,9 +85,9 @@
                             <label><input type="checkbox" name="method" value="OPTIONS"> OPTIONS</label>
                         </div>
                     </fieldset>
-                     <fieldset>
+                    <fieldset>
                         <legend>Filter by Content Type</legend>
-                         <div class="checkbox-group">
+                        <div class="checkbox-group">
                             <label><input type="checkbox" name="content-type" value="json"> JSON</label>
                             <label><input type="checkbox" name="content-type" value="javascript"> JS</label>
                             <label><input type="checkbox" name="content-type" value="css"> CSS</label>
@@ -95,7 +116,8 @@
                     <fieldset class="full-width">
                         <legend>Search in Response Body</legend>
                         <div class="input-with-checkbox">
-                            <input type="text" name="content-contains" id="content-contains" placeholder="e.g., user_id">
+                            <input type="text" name="content-contains" id="content-contains"
+                                placeholder="e.g., user_id">
                             <label class="regex-label" title="Use regular expressions for advanced searching">
                                 <input type="checkbox" name="content-regex" id="content-regex" value="true">
                                 Regex
@@ -131,6 +153,55 @@
         </section>
 
     </div>
+
+    <!-- Sección de Contenido SEO / AdSense -->
+    <section class="content-section" style="max-width: 800px; margin: 4rem auto; padding: 0 1rem;">
+        <article class="card" style="padding: 2rem;">
+            <h2>¿Qué es un archivo HAR?</h2>
+            <p>Un archivo **HAR (HTTP Archive)** es un formato estandarizado basado en JSON para registrar la
+                interacción de un navegador web con un sitio. Contiene un registro detallado de todas las peticiones de
+                red (imágenes, scripts, XHR) que se realizan al cargar una página.</p>
+
+            <h3>¿Para qué sirve esta herramienta?</h3>
+            <p>HAR Analyzer te permite visualizar estos archivos de forma amigable. Es útil para:</p>
+            <ul>
+                <li><strong>Depurar problemas de rendimiento:</strong> Identifica peticiones lentas o pesadas.</li>
+                <li><strong>Análisis de seguridad:</strong> Revisa cabeceras, cookies y datos enviados.</li>
+                <li><strong>Soporte técnico:</strong> Envía logs de red a desarrolladores para reproducir errores.</li>
+            </ul>
+
+            <h3>Cómo exportar un archivo HAR</h3>
+            <ol>
+                <li>Abre las Herramientas de Desarrollador (F12) en tu navegador (Chrome, Firefox, Edge).</li>
+                <li>Ve a la pestaña <strong>Red (Network)</strong>.</li>
+                <li>Navega por la página que quieres analizar.</li>
+                <li>Haz clic derecho en la lista de peticiones y selecciona "Guardar todo como HAR con contenido" (Save
+                    all as HAR with content).</li>
+            </ol>
+
+            <h3>Preguntas Frecuentes (FAQ)</h3>
+            <details>
+                <summary><strong>¿Es seguro subir mis archivos aquí?</strong></summary>
+                <p>Sí. El procesamiento se realiza en memoria y los archivos no se guardan permanentemente en nuestros
+                    servidores. Recomendamos "sanitizar" (limpiar) cualquier dato sensible (contraseñas, tokens) antes
+                    de subir el archivo si tienes preocupaciones estrictas de privacidad.</p>
+            </details>
+            <details style="margin-top: 1rem;">
+                <summary><strong>¿Existe un límite de tamaño?</strong></summary>
+                <p>Sí, actualmente el límite es de **10MB** para garantizar el rendimiento del servidor gratuito. Para
+                    archivos más grandes, te recomendamos usar herramientas de escritorio.</p>
+            </details>
+        </article>
+    </section>
+
+    <!-- Footer Legal -->
+    <footer style="text-align: center; margin: 3rem 0; color: #666; font-size: 0.9rem;">
+        <p>&copy; 2025 HAR Analyzer. Todos los derechos reservados.</p>
+        <p>
+            <a href="/privacy" style="color: inherit; text-decoration: underline;">Política de Privacidad</a> |
+            <a href="/terms" style="color: inherit; text-decoration: underline;">Términos de Uso</a>
+        </p>
+    </footer>
     <script src="{{ url_for('static', filename='script.js', v=version) }}"></script>
 
     <div id="modal" class="modal-hidden">
@@ -190,4 +261,5 @@
         </div>
     </div>
 </body>
+
 </html>

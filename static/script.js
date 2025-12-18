@@ -69,9 +69,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Limit file size to 25MB
+        const MAX_SIZE = 25 * 1024 * 1024;
+        if (harFileInput.files[0].size > MAX_SIZE) {
+            alert('El archivo es demasiado grande (Máximo 25MB). Para proteger la estabilidad del servidor, este es el límite actual.');
+            return;
+        }
+
         // --- Brute-force FormData construction for maximum reliability ---
         const formData = new FormData();
-        
+
         // 1. File
         formData.append('har_file', document.getElementById('har-file').files[0]);
 
@@ -103,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`${key}: ${value}`);
         }
         console.log("-------------------------------------------------");
-        
+
         // Show spinner and clear previous results
         resultsSection.classList.remove('results-hidden');
         spinner.classList.remove('spinner-hidden');
@@ -121,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const rawData = await response.json();
-            
+
             // On first analysis, populate domain filter
             if (!currentData) {
                 populateDomainFilter(rawData.fullDataMap);
@@ -277,9 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const uniqueIds = [...new Set(entriesToDownloadIds)];
         const entriesToDownload = uniqueIds.map(id => fullDataMap[id]);
-        
+
         const cleanedEntries = entriesToDownload.map(entry => {
-            const newEntry = {...entry};
+            const newEntry = { ...entry };
             delete newEntry._id;
             delete newEntry.curl;
             delete newEntry.fileExtension;
@@ -315,14 +322,14 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadOptionsList.querySelectorAll('.download-option-item').forEach(item => {
             const key = item.dataset.groupKey;
             const choice = item.querySelector('select').value;
-            
+
             let selectedIds = [];
             if (choice === 'manual') {
                 item.querySelectorAll('.manual-selection-list input[type="checkbox"]:checked').forEach(cb => {
                     selectedIds.push(parseInt(cb.dataset.entryId, 10));
                 });
             }
-            
+
             selections[key] = { choice, selectedIds };
         });
         downloadWithSelections(selections);
@@ -367,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         allDomains = Array.from(domains).sort();
         domainCheckboxes.innerHTML = '';
-        
+
         // Add "Select All" option
         const selectAllLabel = document.createElement('label');
         selectAllLabel.className = 'select-all-label';
@@ -384,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
             checkbox.type = 'checkbox';
             checkbox.value = domain;
             checkbox.name = 'domains';
-            
+
             label.appendChild(checkbox);
             label.appendChild(document.createTextNode(` ${domain}`));
             domainCheckboxes.appendChild(label);
@@ -418,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
         domainCheckboxes.classList.add('hidden');
         domainSelectBox.parentElement.classList.remove('expanded');
     });
-    
+
     domainCheckboxes.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent closing when clicking inside
     });
@@ -517,17 +524,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'result-group collapsed';
-                
+
                 const title = document.createElement('h3');
                 title.className = 'group-title';
                 title.textContent = `${groupName} (${totalRequestsInGroup} requests)`;
-                
+
                 title.addEventListener('click', () => {
                     groupDiv.classList.toggle('collapsed');
                 });
 
                 groupDiv.appendChild(title);
-                
+
                 const tableContainer = document.createElement('div');
                 tableContainer.appendChild(createTable(sortEntries(entries)));
                 groupDiv.appendChild(tableContainer);
@@ -555,9 +562,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         endpoints.forEach(endpointPath => {
             const endpointData = data[endpointPath];
-            
+
             const groupDiv = document.createElement('div');
-            groupDiv.className = 'result-group collapsed'; 
+            groupDiv.className = 'result-group collapsed';
 
             const titleDiv = document.createElement('div');
             titleDiv.className = 'group-title endpoint-title';
@@ -567,18 +574,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="endpoint-status" title="${escapeHtml(endpointData.statusSummary)}">${escapeHtml(endpointData.statusSummary)}</div>
                 <div class="endpoint-count">${endpointData.count}</div>
             `;
-            
+
             titleDiv.addEventListener('click', () => {
                 groupDiv.classList.toggle('collapsed');
             });
 
             groupDiv.appendChild(titleDiv);
-            
+
             const tableContainer = document.createElement('div');
             tableContainer.className = 'endpoint-table-container';
             tableContainer.appendChild(createTable(sortEntries(endpointData.entries)));
             groupDiv.appendChild(tableContainer);
-            
+
             resultsContainer.appendChild(groupDiv);
         });
     }
@@ -633,12 +640,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         sortCriteria = [{ key, direction: 'asc' }];
                     }
                 }
-                
+
                 renderResults(currentData);
             });
             headerRow.appendChild(th);
         });
-        
+
         headerRow.querySelectorAll('th[data-key]').forEach(th => {
             const key = th.dataset.key;
             const criterion = sortCriteria.find(c => c.key === key);
@@ -654,7 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Body
         const tbody = table.createTBody();
-        
+
         const createCellWithDiv = (parentRow, text, className = '') => {
             const cell = parentRow.insertCell();
             const contentDiv = document.createElement('div');
@@ -664,7 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (className) cell.className = className;
             return cell;
         };
-        
+
         entries.forEach(entry => {
             if (entry.isGroup) {
                 const groupRow = tbody.insertRow();
@@ -679,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 createCellWithDiv(groupRow, entry.size === -1 ? 'N/A' : entry.size);
                 createCellWithDiv(groupRow, entry.mimeType);
                 createCellWithDiv(groupRow, entry.url, 'url');
-                
+
                 // Render sub-rows but keep them hidden
                 entry.subRows.forEach(subEntry => {
                     const subRow = tbody.insertRow();
@@ -775,7 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalTabs.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal-tab-btn')) {
             const tabName = e.target.dataset.tab;
-            
+
             modalTabs.querySelector('.active').classList.remove('active');
             e.target.classList.add('active');
 
@@ -796,7 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let data = content.text || '';
         const mimeType = content.mimeType || 'text/plain';
         const extension = currentModalEntry.fileExtension || 'bin';
-        
+
         if (content.encoding === 'base64') {
             try {
                 // Create a Blob from the base64 string
@@ -806,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     byteNumbers[i] = byteCharacters.charCodeAt(i);
                 }
                 const byteArray = new Uint8Array(byteNumbers);
-                const blob = new Blob([byteArray], {type: mimeType});
+                const blob = new Blob([byteArray], { type: mimeType });
                 const url = URL.createObjectURL(blob);
                 triggerDownload(url, `response.${extension}`);
                 URL.revokeObjectURL(url);
@@ -817,9 +824,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         }
-        
+
         // For plain text
-        const blob = new Blob([data], {type: mimeType});
+        const blob = new Blob([data], { type: mimeType });
         const url = URL.createObjectURL(blob);
         triggerDownload(url, `response.${extension}`);
         URL.revokeObjectURL(url);
@@ -876,7 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const responseContentPre = document.getElementById('response-content-pre');
         const content = entry.response.content;
         const mimeType = content.mimeType || '';
-        
+
         const downloadBtn = document.getElementById('download-response-btn');
         if (content.text) {
             downloadBtn.style.display = 'block';
@@ -904,7 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const previewPane = document.querySelector('[data-tab-content="preview"]');
         const previewTabBtn = document.querySelector('[data-tab="preview"]');
         previewPane.innerHTML = '';
-        
+
         if (mimeType.startsWith('image/') && content.text) {
             previewTabBtn.disabled = false;
             const img = document.createElement('img');
@@ -927,7 +934,7 @@ document.addEventListener('DOMContentLoaded', () => {
             previewTabBtn.disabled = true;
             previewPane.textContent = 'No preview available for this content type.';
         }
-        
+
         // Timings Tab
         const timingsPane = document.querySelector('[data-tab-content="timings"]');
         const timings = entry.timings;
@@ -943,13 +950,13 @@ document.addEventListener('DOMContentLoaded', () => {
             </dl>
         `;
     }
-    
+
     function escapeHtml(unsafe) {
         return unsafe
-             .replace(/&/g, "&amp;")
-             .replace(/</g, "&lt;")
-             .replace(/>/g, "&gt;")
-             .replace(/"/g, "&quot;")
-             .replace(/'/g, "&#039;");
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 });
