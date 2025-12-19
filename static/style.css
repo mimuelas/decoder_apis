@@ -68,6 +68,8 @@ body {
     flex-direction: column;
     gap: 2rem;
     width: 100%;
+    min-width: 0;
+    /* Prevent Grid blowout from wide content */
 }
 
 .ad-sidebar {
@@ -511,14 +513,18 @@ select:focus {
 
 #results-container {
     padding: 0;
-    overflow: hidden;
-    /* Hide radius for child table */
+    overflow-x: auto;
+    /* Enable horizontal scroll, maintain radius */
 }
 
 /* Table */
 .result-table {
     width: 100%;
+    min-width: 800px;
+    /* Force horizontal scroll on small screens */
     border-collapse: collapse;
+    table-layout: fixed;
+    /* STRICTLY respect column widths and forcing truncation */
 }
 
 .result-table th {
@@ -545,6 +551,16 @@ select:focus {
 
 .result-table tr:hover td {
     background: rgba(255, 255, 255, 0.02);
+}
+
+.result-table td.url {
+    color: var(--primary);
+}
+
+.result-table td.url div {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Status Colors */
@@ -745,6 +761,15 @@ select:focus {
     display: flex;
     background: rgba(0, 0, 0, 0.3);
     border-bottom: 1px solid var(--border-glass);
+    overflow-x: auto;
+    /* Allow horizontal scroll for tabs on mobile */
+    scrollbar-width: none;
+    /* Hide scrollbar for cleaner look */
+}
+
+.modal-nav::-webkit-scrollbar {
+    display: none;
+    /* Hide scrollbar for Chrome/Safari */
 }
 
 .modal-tab-btn {
@@ -942,4 +967,55 @@ pre {
 .endpoint-table-container {
     padding: 0;
     background: rgba(0, 0, 0, 0.2);
+}
+
+/* --- Responsive Table Fixes --- */
+#results-container {
+    overflow-x: auto;
+    /* Enable horizontal scroll for tables */
+    border-radius: var(--radius-lg);
+}
+
+@media (max-width: 768px) {
+    /* .result-table td.url rule removed to allow full width scrolling */
+
+    .glass-panel {
+        padding: 1.5rem 1rem;
+        /* Compact padding */
+    }
+
+    .main-header h1 {
+        font-size: 2rem;
+    }
+
+    .result-table th,
+    .result-table td {
+        padding: 0.75rem 0.5rem;
+        /* Compact cells */
+        font-size: 0.85rem;
+    }
+
+    .options-grid {
+        grid-template-columns: 1fr;
+        /* Stack options on mobile */
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .drop-zone {
+        padding: 2rem 1rem;
+    }
+
+    .ad-placeholder {
+        display: none;
+        /* Double check ads are hidden */
+    }
+
+    .app-layout {
+        gap: 1rem;
+    }
+
+    .main-content {
+        padding: 1rem 0.5rem;
+    }
 }
