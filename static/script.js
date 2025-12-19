@@ -19,8 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadOptionsCloseBtn = document.getElementById('download-options-close-btn');
     const downloadConfirmBtn = document.getElementById('download-confirm-btn');
     const downloadOptionsList = document.getElementById('download-options-list');
-    const downloadOptionsModalOverlay = downloadOptionsModal.querySelector('#modal-overlay');
-    const globalActionsContainer = document.querySelector('.download-options-global-actions');
+    const downloadOptionsModalOverlay = downloadOptionsModal.querySelector('.glass-overlay');
+    const globalActionsContainer = document.querySelector('.download-global-actions');
 
     let currentData = null;
     let fullDataMap = null;
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Limit file size to 25MB
         const MAX_SIZE = 25 * 1024 * 1024;
         if (harFileInput.files[0].size > MAX_SIZE) {
-            alert('El archivo es demasiado grande (Máximo 25MB). Para proteger la estabilidad del servidor, este es el límite actual.');
+            alert('File is too large (Max 25MB). This limit is currently in place to ensure server stability.');
             return;
         }
 
@@ -747,7 +747,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const copyCurlBtn = document.getElementById('copy-curl-btn');
     const downloadResponseBtn = document.getElementById('download-response-btn');
-    const modalTabs = document.querySelector('.modal-tabs');
+    const modalTabs = document.querySelector('.modal-nav');
     const modalTabPanes = document.querySelectorAll('.modal-tab-pane');
     let currentModalEntry = null;
 

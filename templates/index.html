@@ -4,30 +4,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HAR Analyzer - Analizador de Archivos HAR Online Gratis</title>
+    <title>HAR Analyzer - Free Online HAR File Viewer & Debugger</title>
     <meta name="description"
-        content="Herramienta gratuita para visualizar, analizar y depurar archivos .HAR. Filtra peticiones HTTP, inspecciona cabeceras y exporta a cURL. Ideal para desarrolladores y QA.">
+        content="Free tool to visualize, analyze, and debug .HAR files online. Filter HTTP requests, inspect headers, unauthorized responses, and export to cURL. Secure and fast.">
     <meta name="keywords"
-        content="HAR analyzer, har viewer, analizar archivo har, depurar red, http debugger, har to curl">
+        content="HAR analyzer, har viewer, har file reader, http debugger, network log analyzer, har to curl, debug har file">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://haranalyzer.es/">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://haranalyzer.es/">
-    <meta property="og:title" content="HAR Analyzer - Analizador de Archivos HAR Online">
+    <meta property="og:title" content="HAR Analyzer - Free Online HAR Viewer">
     <meta property="og:description"
-        content="Visualiza y analiza logs de red fácilmente. Sube tu archivo .HAR y depura tus peticiones HTTP en segundos.">
+        content="Visualize and analyze network logs easily. Upload your .HAR file and debug HTTP requests in seconds.">
     <meta property="og:image" content="https://haranalyzer.es/static/og-image.png">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://haranalyzer.es/">
-    <meta property="twitter:title" content="HAR Analyzer - Analizador de Archivos HAR Online">
+    <meta property="twitter:title" content="HAR Analyzer - Free Online HAR Viewer">
     <meta property="twitter:description"
-        content="Visualiza y analiza logs de red fácilmente. Sube tu archivo .HAR y depura tus peticiones HTTP en segundos.">
+        content="Visualize and analyze network logs easily. Upload your .HAR file and debug HTTP requests in seconds.">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=version) }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "HAR Analyzer",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Free online tool to visualize and debug .HAR files.",
+      "featureList": "HAR Visualization, HTTP Debugging, Network Analysis, cURL Export"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [{
+        "@type": "Question",
+        "name": "What is a HAR file?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A HAR (HTTP Archive) file is a JSON-formatted archive file for logging of a web browser's interaction with a site."
+        }
+      }, {
+        "@type": "Question",
+        "name": "Is my data safe?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, completely safe. Processing is done 100% in your browser memory and volatile server memory for parsing. Your file is destroyed instantly after analysis."
+        }
+      }]
+    }
+    </script>
 
     {% if ga_id %}
     <!-- Google Analytics -->
@@ -42,192 +84,270 @@
 </head>
 
 <body>
-    <div class="container">
-        <header class="main-header">
-            <h1>HAR Analyzer</h1>
-            <p>Upload a .HAR file to analyze network requests.</p>
-        </header>
-
-        <form id="upload-form" class="controls-grid">
-            <div class="card file-upload-card">
-                <h2>Upload File</h2>
-                <div id="drop-zone">
-                    <input type="file" id="har-file" name="har_file" accept=".har" required>
-                    <p>Drag & drop a .HAR file here, or click to select.</p>
-                </div>
-                <div id="file-info" class="file-info-hidden">
-                    Selected file: <span id="file-name"></span>
-                </div>
+    <div class="app-layout">
+        <!-- Sidebar Left (Ad Space) -->
+        <aside class="ad-sidebar left-sidebar">
+            <div class="ad-placeholder">
+                <span>Ad Space</span>
             </div>
+        </aside>
 
-            <div class="card options-card">
-                <div class="options-header">
-                    <h2>Options</h2>
-                    <button type="button" id="clear-filters-btn" class="secondary-button">Clear Filters</button>
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <div class="logo-area">
+                    <span class="logo-icon">⚡</span>
+                    <h1>HAR Analyzer <span class="badge">Pro</span></h1>
                 </div>
-                <div class="options-grid">
-                    <!-- Filtering -->
-                    <fieldset>
-                        <legend>Filter by Error</legend>
-                        <select name="error-filter" id="error-filter">
-                            <option value="">All Requests</option>
-                            <option value="no-errors">No Errors</option>
-                            <option value="has-errors">With Errors</option>
-                        </select>
-                    </fieldset>
-                    <fieldset>
-                        <legend>Filter by Method</legend>
-                        <div class="checkbox-group">
-                            <label><input type="checkbox" name="method" value="GET"> GET</label>
-                            <label><input type="checkbox" name="method" value="POST"> POST</label>
-                            <label><input type="checkbox" name="method" value="PUT"> PUT</label>
-                            <label><input type="checkbox" name="method" value="DELETE"> DELETE</label>
-                            <label><input type="checkbox" name="method" value="OPTIONS"> OPTIONS</label>
-                        </div>
-                    </fieldset>
-                    <fieldset>
-                        <legend>Filter by Content Type</legend>
-                        <div class="checkbox-group">
-                            <label><input type="checkbox" name="content-type" value="json"> JSON</label>
-                            <label><input type="checkbox" name="content-type" value="javascript"> JS</label>
-                            <label><input type="checkbox" name="content-type" value="css"> CSS</label>
-                            <label><input type="checkbox" name="content-type" value="image"> Image</label>
-                            <label><input type="checkbox" name="content-type" value="html"> HTML</label>
-                        </div>
-                    </fieldset>
-                    <fieldset>
-                        <legend>Filter by URL</legend>
-                        <input type="text" name="url-contains" id="url-contains" placeholder="e.g., /api/v1">
-                    </fieldset>
-                    <fieldset>
-                        <legend>URL Length Limit</legend>
-                        <input type="number" name="max-url-len" id="max-url-len" placeholder="e.g., 250" min="0">
-                    </fieldset>
-                    <fieldset>
-                        <legend>Group By</legend>
-                        <select name="group-by" id="group-by">
-                            <option value="">None</option>
-                            <option value="method">Method</option>
-                            <option value="content-type">Content Type</option>
-                            <option value="status">Status Code</option>
-                            <option value="domain">Domain</option>
-                        </select>
-                    </fieldset>
-                    <fieldset class="full-width">
-                        <legend>Search in Response Body</legend>
-                        <div class="input-with-checkbox">
-                            <input type="text" name="content-contains" id="content-contains"
-                                placeholder="e.g., user_id">
-                            <label class="regex-label" title="Use regular expressions for advanced searching">
-                                <input type="checkbox" name="content-regex" id="content-regex" value="true">
-                                Regex
-                            </label>
-                        </div>
-                    </fieldset>
-                    <!-- Domain Filter -->
-                    <fieldset id="domain-filter-fieldset" class="hidden full-width">
-                        <legend>Filter by Domain</legend>
-                        <div class="multiselect">
-                            <div class="select-box" id="domain-select-box">
-                                <span class="select-text">Select domains</span>
-                                <span class="select-arrow">&#9662;</span>
-                            </div>
-                            <div id="domain-checkboxes" class="hidden">
-                                <!-- Checkboxes will be dynamically inserted here -->
+                <p class="hero-text">The fastest and most modern way to visualize, debug, and analyze your network logs.
+                </p>
+            </header>
+
+            <form id="upload-form" class="controls-grid">
+                <!-- Upload Area -->
+                <div class="card upload-card glass-panel">
+                    <div class="card-header">
+                        <h2>📂 Upload Your File</h2>
+                        <span class="step-badge">Step 1</span>
+                    </div>
+                    <div id="drop-zone" class="drop-zone">
+                        <input type="file" id="har-file" name="har_file" accept=".har" required>
+                        <div class="drop-content">
+                            <i class="upload-icon">☁️</i>
+                            <p class="drop-title">Drag & Drop your .HAR file here</p>
+                            <p class="drop-subtitle">or click to browse</p>
+                            <div id="file-info" class="file-info-hidden tag">
+                                <span id="file-name"></span>
                             </div>
                         </div>
-                    </fieldset>
+                    </div>
+                </div>
+
+                <!-- Filter Options -->
+                <div class="card options-card glass-panel">
+                    <div class="card-header">
+                        <div class="options-title-row">
+                            <h2>⚙️ Advanced Filters</h2>
+                            <button type="button" id="clear-filters-btn" class="glass-button small">Clear
+                                All</button>
+                        </div>
+                        <span class="step-badge">Step 2</span>
+                    </div>
+
+                    <div class="options-grid">
+                        <div class="filter-group">
+                            <label><i class="icon">🔍</i> Search URL</label>
+                            <input type="text" name="url-contains" id="url-contains" placeholder="Ex: /api/v1/users">
+                        </div>
+
+                        <div class="filter-group">
+                            <label><i class="icon">⚠️</i> Status</label>
+                            <div class="select-wrapper">
+                                <select name="error-filter" id="error-filter">
+                                    <option value="">Show All</option>
+                                    <option value="has-errors">Errors Only (4xx, 5xx)</option>
+                                    <option value="no-errors">Success Only (2xx, 3xx)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="filter-group full-width">
+                            <label class="group-label">HTTP Method</label>
+                            <div class="checkbox-pills">
+                                <label class="pill"><input type="checkbox" name="method"
+                                        value="GET"><span>GET</span></label>
+                                <label class="pill"><input type="checkbox" name="method"
+                                        value="POST"><span>POST</span></label>
+                                <label class="pill"><input type="checkbox" name="method"
+                                        value="PUT"><span>PUT</span></label>
+                                <label class="pill"><input type="checkbox" name="method"
+                                        value="DELETE"><span>DELETE</span></label>
+                                <label class="pill"><input type="checkbox" name="method"
+                                        value="OPTIONS"><span>OPTIONS</span></label>
+                            </div>
+                        </div>
+
+                        <div class="filter-group full-width">
+                            <label class="group-label">Content Type</label>
+                            <div class="checkbox-pills">
+                                <label class="pill"><input type="checkbox" name="content-type"
+                                        value="json"><span>JSON</span></label>
+                                <label class="pill"><input type="checkbox" name="content-type"
+                                        value="javascript"><span>JS</span></label>
+                                <label class="pill"><input type="checkbox" name="content-type"
+                                        value="image"><span>IMG</span></label>
+                                <label class="pill"><input type="checkbox" name="content-type"
+                                        value="css"><span>CSS</span></label>
+                                <label class="pill"><input type="checkbox" name="content-type"
+                                        value="html"><span>HTML</span></label>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <label>Group By</label>
+                            <div class="select-wrapper">
+                                <select name="group-by" id="group-by">
+                                    <option value="">No Grouping (Flat List)</option>
+                                    <option value="method">Method</option>
+                                    <option value="content-type">MIME Type</option>
+                                    <option value="status">Status Code</option>
+                                    <option value="domain">Domain</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <label>URL Limit (chars)</label>
+                            <input type="number" name="max-url-len" id="max-url-len" placeholder="Ex: 250" min="0">
+                        </div>
+
+                        <div class="filter-group full-width">
+                            <label><i class="icon">📝</i> Search Response Body</label>
+                            <div class="input-with-action">
+                                <input type="text" name="content-contains" id="content-contains"
+                                    placeholder="Search text inside response bodies...">
+                                <label class="toggle-switch" title="Enable Regex">
+                                    <input type="checkbox" name="content-regex" id="content-regex" value="true">
+                                    <span class="slider"></span>
+                                    <span class="label-text">Regex</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Domain Filter (Dynamic) -->
+                        <fieldset id="domain-filter-fieldset" class="hidden full-width filter-group">
+                            <label>Filter by Domain</label>
+                            <div class="multiselect">
+                                <div class="select-box glass-input" id="domain-select-box">
+                                    <span class="select-text">Select domains...</span>
+                                    <span class="select-arrow">▼</span>
+                                </div>
+                                <div id="domain-checkboxes" class="hidden glass-dropdown">
+                                    <!-- Checkboxes injected by JS -->
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <div class="action-area">
+                    <button type="submit" class="analyze-button glow-button">
+                        <span class="btn-icon">🚀</span> ANALYZE NOW
+                    </button>
+                </div>
+            </form>
+
+            <section id="results-section" class="results-hidden">
+                <div class="results-header glass-header">
+                    <h2>📊 Analysis Results</h2>
+                    <button id="download-har-btn" class="glass-button hidden">⬇️ Download Filtered HAR</button>
+                </div>
+                <div id="spinner" class="spinner-hidden">
+                    <div class="loader"></div>
+                </div>
+                <div id="results-container" class="glass-panel"></div>
+            </section>
+
+            <hr class="separator">
+
+            <!-- Educational Content Section -->
+            <section class="content-section glass-panel">
+                <div class="content-header">
+                    <h2>🧠 Knowledge Center</h2>
+                </div>
+                <article>
+                    <h3>What is a HAR file?</h3>
+                    <p>A <strong>HAR (HTTP Archive)</strong> file is like a "black box" of your web browsing.
+                        It records every detail of the conversation between your browser and the server: timings,
+                        headers,
+                        cookies, and content.</p>
+                    <p>Essential for debugging network issues, optimizing performance, and auditing security.</p>
+
+                    <h3>Export HAR in 3 Steps</h3>
+                    <ol class="steps-list">
+                        <li>F12 > <strong>Network</strong> Tab</li>
+                        <li>Refresh the page to capture traffic</li>
+                        <li>Navigate through the page to load the data you need</li>
+                        <li>Right Click > <strong>"Save all as HAR with content"</strong></li>
+                    </ol>
+
+                    <h3>Frequently Asked Questions</h3>
+                    <div class="accordion">
+                        <details>
+                            <summary>Is it safe? Where does my data go?</summary>
+                            <p>Completely safe. Processing is done <strong>100% in volatile memory</strong>. Your
+                                file is analyzed and destroyed instantly. No one (not even us) can see it later.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>File size limit?</summary>
+                            <p>We support files up to <strong>25MB</strong>. This covers 99% of web debugging use cases
+                                while keeping the service free and fast.</p>
+                        </details>
+                    </div>
+                </article>
+            </section>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="icon">🏎️</div>
+                    <h4>Performance</h4>
+                    <p>Detect bottlenecks and slow resources.</p>
+                </div>
+                <div class="info-card">
+                    <div class="icon">🔒</div>
+                    <h4>Security</h4>
+                    <p>Audit tokens and sensitive data sent over the wire.</p>
+                </div>
+                <div class="info-card">
+                    <div class="icon">🐛</div>
+                    <h4>Debugging</h4>
+                    <p>Reproduce exact errors for developers.</p>
                 </div>
             </div>
 
-            <button type="submit" class="analyze-button">Analyze</button>
-        </form>
+            <footer class="main-footer">
+                <div class="footer-links">
+                    <a href="/privacy">Privacy</a>
+                    <span class="dot">•</span>
+                    <a href="/terms">Terms</a>
+                </div>
+                <p>&copy; 2025 HAR Analyzer Pro. Designed for performance.</p>
+            </footer>
 
-        <section id="results-section" class="results-hidden">
-            <div class="results-header">
-                <h2>Analysis Results</h2>
-                <button id="download-har-btn" class="hidden">Download Filtered .HAR</button>
+        </main>
+
+        <!-- Sidebar Right (Ad Space) -->
+        <aside class="ad-sidebar right-sidebar">
+            <div class="ad-placeholder">
+                <span>Ad Space</span>
             </div>
-            <div id="spinner" class="spinner-hidden"></div>
-            <div id="results-container"></div>
-        </section>
-
+        </aside>
     </div>
 
-    <!-- Sección de Contenido SEO / AdSense -->
-    <section class="content-section" style="max-width: 800px; margin: 4rem auto; padding: 0 1rem;">
-        <article class="card" style="padding: 2rem;">
-            <h2>¿Qué es un archivo HAR?</h2>
-            <p>Un archivo <strong>HAR (HTTP Archive)</strong> es un formato estandarizado basado en JSON para registrar
-                la
-                interacción de un navegador web con un sitio. Contiene un registro detallado de todas las peticiones de
-                red (imágenes, scripts, XHR) que se realizan al cargar una página.</p>
-
-            <h3>¿Para qué sirve esta herramienta?</h3>
-            <p>HAR Analyzer te permite visualizar estos archivos de forma amigable. Es útil para:</p>
-            <ul>
-                <li><strong>Depurar problemas de rendimiento:</strong> Identifica peticiones lentas o pesadas.</li>
-                <li><strong>Análisis de seguridad:</strong> Revisa cabeceras, cookies y datos enviados.</li>
-                <li><strong>Soporte técnico:</strong> Envía logs de red a desarrolladores para reproducir errores.</li>
-            </ul>
-
-            <h3>Cómo exportar un archivo HAR</h3>
-            <ol>
-                <li>Abre las Herramientas de Desarrollador (F12) en tu navegador (Chrome, Firefox, Edge).</li>
-                <li>Ve a la pestaña <strong>Red (Network)</strong>.</li>
-                <li>Navega por la página que quieres analizar.</li>
-                <li>Haz clic derecho en la lista de peticiones y selecciona "Guardar todo como HAR con contenido" (Save
-                    all as HAR with content).</li>
-            </ol>
-
-            <h3>Preguntas Frecuentes (FAQ)</h3>
-            <details>
-                <summary><strong>¿Es seguro subir mis archivos aquí?</strong></summary>
-                <p>Sí. El procesamiento se realiza en memoria y los archivos no se guardan permanentemente en nuestros
-                    servidores. Recomendamos "sanitizar" (limpiar) cualquier dato sensible (contraseñas, tokens) antes
-                    de subir el archivo si tienes preocupaciones estrictas de privacidad.</p>
-            </details>
-            <details style="margin-top: 1rem;">
-                <summary><strong>¿Existe un límite de tamaño?</strong></summary>
-                <p>Sí, actualmente el límite es de <strong>25MB</strong> para garantizar el rendimiento del servidor
-                    gratuito. Para
-                    archivos más grandes, te recomendamos usar herramientas de escritorio.</p>
-            </details>
-        </article>
-    </section>
-
-    <!-- Footer Legal -->
-    <footer style="text-align: center; margin: 3rem 0; color: #666; font-size: 0.9rem;">
-        <p>&copy; 2025 HAR Analyzer. Todos los derechos reservados.</p>
-        <p>
-            <a href="/privacy" style="color: inherit; text-decoration: underline;">Política de Privacidad</a> |
-            <a href="/terms" style="color: inherit; text-decoration: underline;">Términos de Uso</a>
-        </p>
-    </footer>
     <script src="{{ url_for('static', filename='script.js', v=version) }}"></script>
 
+    <!-- Details Modal -->
     <div id="modal" class="modal-hidden">
-        <div id="modal-overlay"></div>
-        <div id="modal-content">
+        <div id="modal-overlay" class="glass-overlay"></div>
+        <div id="modal-content" class="glass-modal">
             <div class="modal-header">
-                <h2>Request Details</h2>
+                <h2>🔍 Request Details</h2>
                 <div class="modal-actions">
-                    <button id="copy-curl-btn">Copy as cURL</button>
-                    <button id="modal-close-btn">&times;</button>
+                    <button id="copy-curl-btn" class="glass-button small">Copy cURL</button>
+                    <button id="modal-close-btn" class="close-icon">&times;</button>
                 </div>
             </div>
             <div class="modal-body">
-                <div class="modal-tabs">
-                    <div>
-                        <button class="modal-tab-btn active" data-tab="general">General</button>
-                        <button class="modal-tab-btn" data-tab="headers">Headers</button>
-                        <button class="modal-tab-btn" data-tab="response">Response</button>
-                        <button class="modal-tab-btn" data-tab="preview">Preview</button>
-                        <button class="modal-tab-btn" data-tab="timings">Timings</button>
-                    </div>
-                    <button id="download-response-btn">Download Response</button>
+                <div class="modal-nav">
+                    <button class="modal-tab-btn active" data-tab="general">General</button>
+                    <button class="modal-tab-btn" data-tab="headers">Headers</button>
+                    <button class="modal-tab-btn" data-tab="response">Response</button>
+                    <button class="modal-tab-btn" data-tab="preview">Preview</button>
+                    <button class="modal-tab-btn" data-tab="timings">Timings</button>
+                    <button id="download-response-btn" class="action-link">Download Body</button>
                 </div>
-                <div class="modal-tab-content">
+                <div class="modal-viewport pretty-scroll">
                     <div class="modal-tab-pane active" data-tab-content="general"></div>
                     <div class="modal-tab-pane" data-tab-content="headers"></div>
                     <div class="modal-tab-pane" data-tab-content="response">
@@ -240,25 +360,28 @@
         </div>
     </div>
 
+    <!-- Download Modal -->
     <div id="download-options-modal" class="modal-hidden">
-        <div id="modal-overlay"></div>
-        <div id="modal-content">
+        <div class="glass-overlay"></div>
+        <div id="modal-content" class="glass-modal small-modal">
             <div class="modal-header">
                 <h2>Download Options</h2>
-                <button id="download-options-close-btn" class="modal-close-button">&times;</button>
+                <button id="download-options-close-btn" class="close-icon">&times;</button>
             </div>
             <div class="modal-body">
-                <p>Some requests were grouped. Choose how many instances to include in the downloaded .HAR file.</p>
-                <div class="download-options-global-actions">
-                    <span>Apply to all:</span>
-                    <button type="button" class="secondary-button" data-action="all">Include All</button>
-                    <button type="button" class="secondary-button" data-action="first">Include First</button>
-                    <button type="button" class="secondary-button" data-action="manual">Select Manually</button>
+                <p class="modal-intro">Some requests are grouped. How do you want to export them?</p>
+
+                <div class="download-global-actions">
+                    <button type="button" class="glass-button small" data-action="all">All</button>
+                    <button type="button" class="glass-button small" data-action="first">First Only</button>
+                    <button type="button" class="glass-button small" data-action="manual">Manual</button>
                 </div>
-                <div id="download-options-list"></div>
-            </div>
-            <div class="modal-footer">
-                <button id="download-confirm-btn" class="analyze-button">Download</button>
+
+                <div id="download-options-list" class="pretty-scroll"></div>
+
+                <div class="modal-actions-footer">
+                    <button id="download-confirm-btn" class="glow-button full">Confirm Download</button>
+                </div>
             </div>
         </div>
     </div>

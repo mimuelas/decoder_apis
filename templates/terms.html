@@ -1,34 +1,45 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Términos de Uso - HAR Analyzer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=version) }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Terms of Service - HAR Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <meta name="robots" content="noindex">
 </head>
 
 <body>
-    <div class="container">
-        <header class="main-header">
-            <h1><a href="/" style="text-decoration: none; color: inherit;">HAR Analyzer</a></h1>
-        </header>
-        <div class="card" style="padding: 2rem; margin-top: 2rem;">
-            <h2>Términos de Uso</h2>
-            <p>Aceptación de los términos: Al usar HAR Analyzer, aceptas estos términos.</p>
+    <div class="app-layout">
+        <main class="main-content" style="max-width: 800px; margin: 0 auto; padding: 40px 20px;">
+            <header class="main-header">
+                <h1>Terms of Service</h1>
+                <p>Last updated: January 2025</p>
+            </header>
 
-            <h3>1. Uso del Servicio</h3>
-            <p>Este servicio se proporciona "tal cual". No garantizamos que esté libre de errores. Eres responsable de
-                los datos que subes. No subas archivos que contengan información sensible o confidencial sin
-                anonimizarla previamente.</p>
+            <section class="glass-panel" style="padding: 30px; text-align: left;">
+                <h2>1. Usage</h2>
+                <p>By using HAR Analyzer ("the Service"), you agree to these terms. The Service is provided "as is"
+                    without any warranties.</p>
 
-            <h3>2. Limitación de Responsabilidad</h3>
-            <p>No nos hacemos responsables de ningún daño derivado del uso de esta herramienta.</p>
+                <h2>2. User Responsibility</h2>
+                <p>You are responsible for the HAR files you upload. Do not upload files containing sensitive personal
+                    data (PII), passwords, or tokens if you do not trust the transmission, although we do not persist
+                    any data.</p>
 
-            <h3>3. Modificaciones</h3>
-            <p>Nos reservamos el derecho de modificar estos términos en cualquier momento.</p>
-        </div>
+                <h2>3. Limitations</h2>
+                <p>We reserve the right to limit file sizes (currently 25MB) or rate-limit requests to ensure service
+                    stability for all users.</p>
+
+                <h2>4. Liability</h2>
+                <p>We are not liable for any damages arising from the use or inability to use the Service.</p>
+
+                <div style="margin-top: 30px;">
+                    <a href="/" class="glass-button">← Back to Analyzer</a>
+                </div>
+            </section>
+        </main>
     </div>
 </body>
 

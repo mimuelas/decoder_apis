@@ -1,33 +1,48 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Política de Privacidad - HAR Analyzer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=version) }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Privacy Policy - HAR Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <meta name="robots" content="noindex">
 </head>
+
 <body>
-    <div class="container">
-        <header class="main-header">
-            <h1><a href="/" style="text-decoration: none; color: inherit;">HAR Analyzer</a></h1>
-        </header>
-        <div class="card" style="padding: 2rem; margin-top: 2rem;">
-            <h2>Política de Privacidad</h2>
-            <p>Última actualización: 19 de Diciembre de 2025</p>
-            
-            <h3>1. Información que recopilamos</h3>
-            <p>HAR Analyzer no recopila ni almacena permanentemente los archivos HAR que subes. Los archivos se procesan en memoria y se descartan inmediatamente después del análisis.</p>
-            
-            <h3>2. Cookies y Análisis</h3>
-            <p>Utilizamos Google Analytics para entender cómo se usa nuestro sitio. Esto puede implicar el uso de cookies anónimas.</p>
-            
-            <h3>3. Publicidad</h3>
-            <p>Podemos mostrar anuncios servidos por Google AdSense. Google utiliza cookies para servir anuncios basados en las visitas anteriores de los usuarios a este sitio web u otros sitios web.</p>
-            
-            <h3>4. Contacto</h3>
-            <p>Si tienes preguntas sobre esta política, contáctanos.</p>
-        </div>
+    <div class="app-layout">
+        <main class="main-content" style="max-width: 800px; margin: 0 auto; padding: 40px 20px;">
+            <header class="main-header">
+                <h1>Privacy Policy</h1>
+                <p>Last updated: January 2025</p>
+            </header>
+
+            <section class="glass-panel" style="padding: 30px; text-align: left;">
+                <h2>1. Data Processing</h2>
+                <p>HAR Analyzer is a client-side focused tool. When you "upload" a HAR file, it is processed in your
+                    browser memory or temporarily parsed in volatile memory on our servers for the sole purpose of
+                    visualization.</p>
+                <p><strong>We do not store, save, or archive your HAR files.</strong> Once the analysis session is
+                    closed or the page is refreshed, all data is permanently discarded.</p>
+
+                <h2>2. Cookies</h2>
+                <p>We use Google Analytics to understand basic usage patterns (e.g., number of visitors). This may store
+                    a cookie on your device. You can opt-out by disabling cookies in your browser.</p>
+
+                <h2>3. Third-Party Services</h2>
+                <p>We use Google AdSense to serve advertisements. Google may use cookies to serve ads based on your
+                    prior visits to our website or other websites.</p>
+
+                <h2>4. Contact</h2>
+                <p>If you have any questions, please contact us at support@haranalyzer.es.</p>
+
+                <div style="margin-top: 30px;">
+                    <a href="/" class="glass-button">← Back to Analyzer</a>
+                </div>
+            </section>
+        </main>
     </div>
 </body>
+
 </html>
