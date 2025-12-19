@@ -81,6 +81,10 @@
         gtag('config', '{{ ga_id }}');
     </script>
     {% endif %}
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-268546076636121"
+        crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -88,7 +92,14 @@
         <!-- Sidebar Left (Ad Space) -->
         <aside class="ad-sidebar left-sidebar">
             <div class="ad-placeholder">
-                <span>Ad Space</span>
+                <div class="ad-placeholder">
+                    <!-- Unit Link SideBar Left -->
+                    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-268546076636121"
+                        data-ad-slot="1234567890" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                    <script>
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
+                </div>
             </div>
         </aside>
 
@@ -128,7 +139,8 @@
                     <div class="card-header">
                         <div class="options-title-row">
                             <h2>⚙️ Advanced Filters</h2>
-                            <button type="button" id="clear-filters-btn" class="glass-button small">Clear
+                            <button type="button" id="clear-filters-btn" class="glass-button small"
+                                aria-label="Clear all applied filters">Clear
                                 All</button>
                         </div>
                         <span class="step-badge">Step 2</span>
@@ -320,7 +332,14 @@
         <!-- Sidebar Right (Ad Space) -->
         <aside class="ad-sidebar right-sidebar">
             <div class="ad-placeholder">
-                <span>Ad Space</span>
+                <div class="ad-placeholder">
+                    <!-- Unit Link SideBar Right -->
+                    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-268546076636121"
+                        data-ad-slot="1234567890" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                    <script>
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
+                </div>
             </div>
         </aside>
     </div>
@@ -335,7 +354,7 @@
                 <h2>🔍 Request Details</h2>
                 <div class="modal-actions">
                     <button id="copy-curl-btn" class="glass-button small">Copy cURL</button>
-                    <button id="modal-close-btn" class="close-icon">&times;</button>
+                    <button id="modal-close-btn" class="close-icon" aria-label="Close Details Modal">&times;</button>
                 </div>
             </div>
             <div class="modal-body">
@@ -366,7 +385,8 @@
         <div id="modal-content" class="glass-modal small-modal">
             <div class="modal-header">
                 <h2>Download Options</h2>
-                <button id="download-options-close-btn" class="close-icon">&times;</button>
+                <button id="download-options-close-btn" class="close-icon"
+                    aria-label="Close Download Options">&times;</button>
             </div>
             <div class="modal-body">
                 <p class="modal-intro">Some requests are grouped. How do you want to export them?</p>

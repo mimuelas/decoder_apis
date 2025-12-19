@@ -1,9 +1,9 @@
-from flask import Flask, request, jsonify, render_template, Response
+from flask import Flask, request, jsonify, render_template, Response, redirect
 import json
 from collections import defaultdict
 import os
 import shlex
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 import mimetypes
 import re
 import base64
@@ -266,6 +266,16 @@ if not app.debug:
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     app.logger.addHandler(handler)
+
+@app.before_request
+def redirect_www():
+    """Redirects www to non-www for SEO consolidation."""
+    urlparts = urlparse(request.url)
+    if urlparts.netloc.startswith('www.'):
+        urlparts_list = list(urlparts)
+        urlparts_list[1] = urlparts_list[1][4:]
+        return redirect(urlunparse(urlparts_list), code=301)
+
 
 @app.route('/')
 def index():
