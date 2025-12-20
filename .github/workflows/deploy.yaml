@@ -1,0 +1,31 @@
+name: Deploy to App Engine
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Permite ejecutarlo manualmente desde GitHub si hace falta
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Autenticación con Google Cloud usando la Service Account Key
+      - name: Google Cloud Auth
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      # Despliegue a App Engine
+      - name: Deploy to App Engine
+        uses: 'google-github-actions/deploy-appengine@v2'
+        with:
+          project_id: '${{ secrets.GCP_PROJECT_ID }}'
+          # Opconal: flags: '--quiet' es el default
