@@ -154,6 +154,13 @@ body {
 }
 
 /* --- Glassmorphism Components --- */
+.controls-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    /* Default spacing between stacked panels */
+}
+
 .glass-panel {
     background: var(--bg-glass);
     backdrop-filter: blur(var(--blur-amt));
