@@ -60,10 +60,20 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInfo.classList.remove('file-info-hidden');
     }
 
+    let rawDataset = []; // Stores ALL entries received from server
+    let hasLoadedData = false;
+
     // --- Form Submission ---
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
+        // If we already have data, just run local analysis!
+        if (hasLoadedData) {
+            runLocalAnalysis();
+            return;
+        }
+
+        // --- First Time Upload Logic ---
         if (!harFileInput.files[0]) {
             alert('Please select a HAR file.');
             return;
@@ -72,46 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Limit file size to 25MB
         const MAX_SIZE = 25 * 1024 * 1024;
         if (harFileInput.files[0].size > MAX_SIZE) {
-            alert('File is too large (Max 25MB). This limit is currently in place to ensure server stability.');
+            alert('File is too large (Max 25MB).');
             return;
         }
 
-        // --- Brute-force FormData construction for maximum reliability ---
         const formData = new FormData();
+        formData.append('har_file', harFileInput.files[0]);
 
-        // 1. File
-        formData.append('har_file', document.getElementById('har-file').files[0]);
-
-        // 2. Simple text/select fields by ID
-        formData.append('error-filter', document.getElementById('error-filter').value);
-        formData.append('url-contains', document.getElementById('url-contains').value);
-        formData.append('max-url-len', document.getElementById('max-url-len').value);
-        formData.append('group-by', document.getElementById('group-by').value);
-        formData.append('content-contains', document.getElementById('content-contains').value);
-        if (document.getElementById('content-regex').checked) {
-            formData.append('content-regex', 'true');
-        }
-
-        // 3. Checkboxes by name/ID
-        document.querySelectorAll('input[name="method"]:checked').forEach(cb => {
-            formData.append('method', cb.value);
-        });
-        document.querySelectorAll('input[name="content-type"]:checked').forEach(cb => {
-            formData.append('content-type', cb.value);
-        });
-
-        // 4. Domains (handled by its own logic)
-        const selectedDomains = getSelectedDomains();
-        selectedDomains.forEach(domain => formData.append('domains', domain));
-
-        // --- DEBUG LOG to verify FormData content ---
-        console.log("--- DEBUG: Final FormData content before sending ---");
-        for (const [key, value] of formData.entries()) {
-            console.log(`${key}: ${value}`);
-        }
-        console.log("-------------------------------------------------");
-
-        // Show spinner and clear previous results
+        // UI Loading State
         resultsSection.classList.remove('results-hidden');
         spinner.classList.remove('spinner-hidden');
         resultsContainer.innerHTML = '';
@@ -129,36 +107,228 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const rawData = await response.json();
 
-            // On first analysis, populate domain filter
-            if (!currentData) {
-                populateDomainFilter(rawData.fullDataMap);
-            }
-            // Always populate the domain filter on every analysis
-            populateDomainFilter(rawData.fullDataMap);
+            // Store the full dataset
+            fullDataMap = rawData.fullDataMap; // Keeps ID mapping
+            rawDataset = Object.values(fullDataMap); // Array for filtering
+            hasLoadedData = true;
 
-            currentData = rawData.displayData;
-            fullDataMap = rawData.fullDataMap;
-            // Set default sorting
-            sortCriteria = [
-                { key: 'method', direction: 'asc' },
-                { key: 'url', direction: 'asc' }
-            ];
-            renderResults(currentData, rawData.isEndpointGroup);
+            // Populate domains once
+            populateDomainFilter(fullDataMap);
 
-            // Show/hide download button
-            const totalEntries = Object.values(fullDataMap).length;
-            if (totalEntries > 0) {
-                downloadHarBtn.classList.remove('hidden');
-            } else {
-                downloadHarBtn.classList.add('hidden');
-            }
+            // Run initial analysis
+            runLocalAnalysis();
 
         } catch (error) {
             resultsContainer.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            hasLoadedData = false; // Reset on error
         } finally {
             spinner.classList.add('spinner-hidden');
         }
     });
+
+    // --- Client-Side Analysis Engine ---
+    function runLocalAnalysis() {
+        spinner.classList.remove('spinner-hidden');
+        resultsContainer.innerHTML = '';
+
+        // 1. Filter
+        const filtered = applyFilters(rawDataset);
+
+        // 2. Group/Aggregate
+        const groupBy = document.getElementById('group-by').value;
+        let displayData;
+
+        if (!groupBy) {
+            displayData = performRowLevelAggregation(filtered);
+        } else {
+            displayData = performTopLevelGrouping(filtered, groupBy);
+        }
+
+        currentData = displayData; // For sort/download
+
+        // 3. Render
+        // Set default sorting if not set (optional, or persist user sort)
+        if (sortCriteria.length === 0) {
+            sortCriteria = [
+                { key: 'method', direction: 'asc' },
+                { key: 'url', direction: 'asc' }
+            ];
+        }
+
+        // Is it a grouped view (object) or flat list (array)?
+        // renderResults handles both.
+        renderResults(displayData);
+
+        // 4. Download Button Visibility
+        const totalEntries = Object.keys(fullDataMap).length;
+        if (totalEntries > 0) {
+            downloadHarBtn.classList.remove('hidden');
+        } else {
+            downloadHarBtn.classList.add('hidden');
+        }
+
+        spinner.classList.add('spinner-hidden');
+    }
+
+    function applyFilters(entries) {
+        // Collect Filter Values
+        const errorFilter = document.getElementById('error-filter').value;
+        const urlContains = document.getElementById('url-contains').value.toLowerCase();
+        const maxUrlLen = parseInt(document.getElementById('max-url-len').value) || null;
+        const contentContains = document.getElementById('content-contains').value; // Case sensitivity handled depending on regex
+        const contentRegex = document.getElementById('content-regex').checked;
+
+        const selectedMethods = Array.from(document.querySelectorAll('input[name="method"]:checked')).map(cb => cb.value.toUpperCase());
+        const selectedContentTypes = Array.from(document.querySelectorAll('input[name="content-type"]:checked')).map(cb => cb.value.toLowerCase());
+        const selectedDomains = getSelectedDomains(); // Assuming this function exists and works
+
+        return entries.filter(entry => {
+            // 1. Domain
+            if (selectedDomains.length > 0) {
+                try {
+                    const domain = new URL(entry.request.url).hostname;
+                    if (!selectedDomains.includes(domain)) return false;
+                } catch (e) { return false; }
+            }
+
+            // 2. Status / Errors
+            if (errorFilter === 'has-errors' && entry.response.status < 400) return false;
+            if (errorFilter === 'no-errors' && entry.response.status >= 400) return false;
+
+            // 3. Method
+            if (selectedMethods.length > 0 && !selectedMethods.includes(entry.request.method.toUpperCase())) return false;
+
+            // 4. Content Type
+            if (selectedContentTypes.length > 0) {
+                const mime = (entry.response.content.mimeType || '').toLowerCase();
+                // Check if any selected type matches part of the mime
+                const match = selectedContentTypes.some(t => mime.includes(t));
+                if (!match) return false;
+            }
+
+            // 5. URL Contains
+            if (urlContains && !entry.request.url.toLowerCase().includes(urlContains)) return false;
+
+            // 6. Max Length
+            if (maxUrlLen !== null && entry.request.url.length > maxUrlLen) return false;
+
+            // 7. Content Body Search (Expensive, do last)
+            if (contentContains) {
+                const text = entry.response.content.text || '';
+                // Handle Base64 if needed? Python logic did.
+                // For simplicity in JS, assume text is text. 
+                // If encoding is base64, we might need window.atob, but let's trust 'text' field for now from HAR.
+
+                if (contentRegex) {
+                    try {
+                        const regex = new RegExp(contentContains, 'i');
+                        if (!regex.test(text)) return false;
+                    } catch (e) { return false; } // Invalid regex
+                } else {
+                    if (!text.toLowerCase().includes(contentContains.toLowerCase())) return false;
+                }
+            }
+
+            return true;
+        });
+    }
+
+    function performRowLevelAggregation(entries) {
+        // Input: Array of raw entries
+        // Output: Array of "Display Objects" (Standardized for Table) where duplicates are grouped
+
+        const groups = {};
+
+        entries.forEach(entry => {
+            const key = `${entry.method}::${entry.url}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(entry);
+        });
+
+        const displayData = [];
+
+        for (const key in groups) {
+            const groupEntries = groups[key];
+
+            if (groupEntries.length > 1) {
+                // Aggregate
+                const first = groupEntries[0];
+                const totalTime = groupEntries.reduce((sum, e) => sum + (e.time || 0), 0);
+                const totalSize = groupEntries.reduce((sum, e) => sum + (e.response.content.size !== -1 ? e.response.content.size : 0), 0);
+
+                const statuses = [...new Set(groupEntries.map(e => e.response.status))].sort().join(', ');
+
+                // Mime
+                const mimeTypes = [...new Set(groupEntries.map(e => e.mimeType))].filter(m => m !== 'N/A' && m !== 'unknown');
+                let mimeDisplay = "N/A";
+                if (mimeTypes.length === 1) mimeDisplay = mimeTypes[0];
+                else if (mimeTypes.length > 1) mimeDisplay = "Multiple";
+                else if (groupEntries[0].mimeType) mimeDisplay = groupEntries[0].mimeType;
+
+                displayData.push({
+                    isGroup: true,
+                    groupKey: key,
+                    count: groupEntries.length,
+                    method: first.method,
+                    url: first.url,
+                    status: statuses,
+                    time: totalTime / groupEntries.length,
+                    size: totalSize,
+                    mimeType: mimeDisplay,
+                    subRows: groupEntries.map(formatEntryForDisplay)
+                });
+            } else {
+                const single = formatEntryForDisplay(groupEntries[0]);
+                single.isGroup = false;
+                displayData.push(single);
+            }
+        }
+        return displayData;
+    }
+
+    // Helper to format flat entry for table
+    function formatEntryForDisplay(entry) {
+        // Ensure simple mime for display
+        const simpleMime = (entry.mimeType || 'N/A').split(';')[0].split('/').pop();
+
+        return {
+            _id: entry._id,
+            method: entry.method,
+            status: entry.status,
+            url: entry.url,
+            time: entry.time,
+            size: entry.size,
+            mimeType: simpleMime || "unknown",
+            isGroup: false
+        };
+    }
+
+    // Fix push vs append typo in performRowLevelAggregation above
+    // I will fix it in the replacement string below directly.
+
+    function performTopLevelGrouping(entries, criteria) {
+        // Output: Object { "Group Name": [DisplayObjects] }
+        const topGroups = {};
+
+        entries.forEach(entry => {
+            let key = "N/A";
+            if (criteria === 'method') key = entry.method;
+            else if (criteria === 'content-type') key = (entry.mimeType || 'unknown').split(';')[0].split('/').pop() || 'unknown';
+            else if (criteria === 'status') key = entry.status > 0 ? Math.floor(entry.status / 100) + 'xx' : 'Status N/A';
+            else if (criteria === 'domain') {
+                try { key = new URL(entry.url).hostname; } catch (e) { key = "Invalid URL"; }
+            }
+
+            if (!topGroups[key]) topGroups[key] = [];
+            topGroups[key].push(entry);
+        });
+
+        const result = {};
+        for (const key in topGroups) {
+            result[key] = performRowLevelAggregation(topGroups[key]);
+        }
+        return result;
+    }
 
     // --- Clear Filters ---
     clearFiltersBtn.addEventListener('click', () => {

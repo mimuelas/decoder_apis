@@ -340,53 +340,39 @@ def upload_har():
             'domains': request.form.getlist('domains')
         }
         
-        # Process and filter data
-        filtered_entries = analyze_har_data(har_data, options)
-
-        # Create a map of full entries for the modal view and add cURL commands
-        full_data_map = {}
-        for entry in filtered_entries:
-            entry['curl'] = generate_curl_command(entry)
-            entry['fileExtension'] = get_extension_from_mimetype(
-                entry.get('response', {}).get('content', {}).get('mimeType', '')
-            )
-            full_data_map[entry['_id']] = entry
+        # Process data - NO FILTERING on backend anymore
+        # We just normalize and assign IDs
+        entries = har_data.get('log', {}).get('entries', [])
+        normalized_entries = []
         
-        # --- New Combined Grouping Logic ---
-        group_by = options.get('group_by')
-
-        if not group_by:
-            # No top-level grouping, just perform row-level aggregation on the whole list
-            display_data = perform_row_level_aggregation(filtered_entries)
-            return jsonify({'displayData': display_data, 'fullDataMap': full_data_map})
-        else:
-            # Perform top-level grouping first
-            top_level_groups = defaultdict(list)
-            for entry in filtered_entries:
-                key = 'N/A'
-                if group_by == 'method':
-                    key = entry.get('request', {}).get('method', 'N/A')
-                elif group_by == 'content-type':
-                    mime_type = entry.get('response', {}).get('content', {}).get('mimeType', 'N/A')
-                    simple_mime = mime_type.split(';')[0].split('/')[-1]
-                    key = simple_mime if simple_mime else "unknown"
-                elif group_by == 'status':
-                    status = entry.get('response', {}).get('status', 0)
-                    key = f"{status // 100}xx" if status > 0 else "Status N/A"
-                elif group_by == 'domain':
-                    url = entry.get('request', {}).get('url', '')
-                    if url:
-                        try: key = urlparse(url).netloc
-                        except Exception: key = "Invalid URL"
-                    else: key = "No URL"
-                top_level_groups[key].append(entry)
+        for i, entry in enumerate(entries):
+            # Normalize and enrich
+            entry['_id'] = i
+            entry['curl'] = generate_curl_command(entry)
             
-            # Then, for each top-level group, perform row-level aggregation
-            display_groups = {
-                key: perform_row_level_aggregation(entries)
-                for key, entries in top_level_groups.items()
-            }
-            return jsonify({'displayData': display_groups, 'fullDataMap': full_data_map})
+            # Extract basic info for frontend efficiency
+            request_data = entry.get('request', {})
+            response_data = entry.get('response', {})
+            content = response_data.get('content', {})
+            
+            # Safe extraction
+            entry['method'] = request_data.get('method', 'N/A')
+            entry['url'] = request_data.get('url', 'N/A')
+            entry['status'] = response_data.get('status', 0)
+            entry['time'] = entry.get('time', 0)
+            entry['size'] = content.get('size', -1)
+            
+            mime_type = content.get('mimeType', 'N/A')
+            entry['mimeType'] = mime_type
+            entry['fileExtension'] = get_extension_from_mimetype(mime_type)
+            
+            normalized_entries.append(entry)
+
+        # Create the map (ID -> Entry)
+        full_data_map = {e['_id']: e for e in normalized_entries}
+        
+        # Return ONLY the full map. The frontend will handle filtering and grouping.
+        return jsonify({'fullDataMap': full_data_map})
 
 
     except json.JSONDecodeError:
