@@ -31,6 +31,38 @@
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Utility */
+.hidden {
+    display: none !important;
+}
+
+/* --- Global Scrollbar Styling --- */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    border: 2px solid transparent;
+    /* Creates padding effect */
+    background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+    background-clip: content-box;
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
 *,
 *::before,
 *::after {
@@ -53,11 +85,13 @@ body {
 /* --- Layout System (3 Columns) --- */
 .app-layout {
     display: grid;
-    /* Fixed width for ads (ideal for AdSense), flexible center */
-    grid-template-columns: 320px 1fr 320px;
+    /* Fixed width for ads, flexible center with min-width 0 to prevent overflow blowouts */
+    grid-template-columns: 320px minmax(0, 1fr) 320px;
     gap: 2rem;
     min-height: 100vh;
     width: 100%;
+    overflow-x: hidden;
+    /* Prevent body scroll from rogue elements */
 }
 
 .main-content {
@@ -515,6 +549,9 @@ select:focus {
     padding: 0;
     overflow-x: auto;
     /* Enable horizontal scroll, maintain radius */
+    max-width: 100%;
+    /* Ensure it doesn't exceed parent */
+    position: relative;
 }
 
 /* Table */
@@ -522,9 +559,35 @@ select:focus {
     width: 100%;
     min-width: 800px;
     /* Force horizontal scroll on small screens */
-    border-collapse: collapse;
+    /* Force horizontal scroll on small screens */
+    border-collapse: separate;
+    /* Changed from collapse to allow sticky headers if needed later */
+    border-spacing: 0;
     table-layout: fixed;
     /* STRICTLY respect column widths and forcing truncation */
+}
+
+/* Ensure the container has the styled scrollbar */
+#results-container::-webkit-scrollbar {
+    height: 12px;
+}
+
+#results-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+#results-container::-webkit-scrollbar-thumb {
+    background: var(--border-glass);
+    border-radius: 6px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+}
+
+#results-container::-webkit-scrollbar-thumb:hover {
+    background: var(--text-dim);
+    border: 3px solid transparent;
+    background-clip: content-box;
 }
 
 .result-table th {
@@ -586,11 +649,9 @@ select:focus {
 }
 
 /* --- Content Section --- */
+/* Separator removed to prevent visual artifact */
 .separator {
-    border: 0;
-    height: 1px;
-    background: var(--border-glass);
-    margin: 4rem 0;
+    display: none;
 }
 
 .content-section {
@@ -880,6 +941,11 @@ pre {
 }
 
 /* Multiselect special */
+.multiselect {
+    position: relative;
+    /* Anchor for absolute dropdown */
+}
+
 .glass-input {
     background: rgba(0, 0, 0, 0.3);
     padding: 0.75rem;
@@ -897,12 +963,13 @@ pre {
     left: 0;
     background: var(--bg-surface);
     border: 1px solid var(--border-glass);
-    z-index: 100;
-    max-height: 200px;
+    z-index: 1000;
+    /* Higher z-index to float above table headers */
+    max-height: 250px;
     overflow-y: auto;
     margin-top: 5px;
     border-radius: 6px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
 }
 
 .glass-dropdown label {
@@ -941,7 +1008,8 @@ pre {
 
 /* MIME */
 .result-table th:nth-child(6) {
-    width: 48%;
+    width: auto;
+    /* Let URL take remaining space */
 }
 
 /* URL */
@@ -1000,6 +1068,18 @@ pre {
         /* Stack options on mobile */
         gap: 1rem;
         padding: 1rem;
+    }
+
+    /* Results Header - Ensure it stays on top */
+    .results-header {
+        position: relative;
+        z-index: 5;
+    }
+
+    #download-har-btn {
+        /* Make sure button is visible and not overlapped */
+        position: relative;
+        z-index: 10;
     }
 
     .drop-zone {

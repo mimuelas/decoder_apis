@@ -403,6 +403,10 @@ document.addEventListener('DOMContentLoaded', () => {
             domainFilterFieldset.classList.add('hidden');
         }
 
+        // Ensure the actual dropdown list (checkboxes) is HIDDEN initially
+        domainCheckboxes.classList.add('hidden');
+        domainSelectBox.parentElement.classList.remove('expanded');
+
         // Reset selections and text
         updateSelectedDomainText();
     }
