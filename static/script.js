@@ -193,12 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 3. Render
         // Set default sorting if not set (optional, or persist user sort)
-        if (sortCriteria.length === 0) {
-            sortCriteria = [
-                { key: 'method', direction: 'asc' },
-                { key: 'url', direction: 'asc' }
-            ];
-        }
+        // Default value logic removed
+        // if (sortCriteria.length === 0) { ... }
 
         // Is it a grouped view (object) or flat list (array)?
         // renderResults handles both.
@@ -301,13 +297,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const totalTime = groupEntries.reduce((sum, e) => sum + (e.time || 0), 0);
                 const totalSize = groupEntries.reduce((sum, e) => sum + (e.response.content.size !== -1 ? e.response.content.size : 0), 0);
 
-                const statuses = [...new Set(groupEntries.map(e => e.response.status))].sort().join(', ');
+                const uniqueStatuses = [...new Set(groupEntries.map(e => e.response.status))];
+                const statusDisplay = uniqueStatuses.length > 1 ? '-' : uniqueStatuses[0];
 
                 // Mime
                 const mimeTypes = [...new Set(groupEntries.map(e => e.mimeType))].filter(m => m !== 'N/A' && m !== 'unknown');
                 let mimeDisplay = "N/A";
                 if (mimeTypes.length === 1) mimeDisplay = mimeTypes[0];
-                else if (mimeTypes.length > 1) mimeDisplay = "Multiple";
+                else if (mimeTypes.length > 1) mimeDisplay = "Multiple"; // Or use '-' if preferred by user, but "Multiple" is explicit for MIME
+                // Let's stick to user request of using '-' for mixed data if it makes sense. 
+                // For MIME "Multiple" is slightly better but let's be consistent if they asked for '-' generally?
+                // "si tienen diferentes datos para la misma columna ... ponga un '-'" -> The example was status 0,200.
+                if (mimeTypes.length > 1) mimeDisplay = "-";
                 else if (groupEntries[0].mimeType) mimeDisplay = groupEntries[0].mimeType;
 
                 displayData.push({
@@ -316,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     count: groupEntries.length,
                     method: first.method,
                     url: first.url,
-                    status: statuses,
+                    status: statusDisplay,
                     time: totalTime / groupEntries.length,
                     size: totalSize,
                     mimeType: mimeDisplay,
@@ -866,6 +867,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const indicator = document.createElement('span');
                 indicator.className = 'sort-indicator';
                 indicator.textContent = criterion.direction === 'asc' ? '▲' : '▼';
+
+                // Add priority number if multiple sorts
+                if (sortCriteria.length > 1) {
+                    const priority = document.createElement('small');
+                    priority.textContent = (sortCriteria.findIndex(c => c.key === key) + 1);
+                    priority.style.fontSize = '0.7em';
+                    priority.style.marginLeft = '2px';
+                    priority.style.opacity = '0.8';
+                    indicator.appendChild(priority);
+                }
+
                 th.appendChild(indicator);
             }
         });
@@ -1097,8 +1109,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const mimeType = content.mimeType || '';
 
         const downloadBtn = document.getElementById('download-response-btn');
+        const noResponseMsg = document.getElementById('no-response-msg');
+
         if (content.text) {
-            downloadBtn.style.display = 'block';
+            downloadBtn.classList.remove('hidden');
+            noResponseMsg.classList.add('hidden');
+
             let responseText = content.text;
             if (content.encoding === 'base64') {
                 try {
@@ -1115,7 +1131,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             responseContentPre.textContent = responseText;
         } else {
-            downloadBtn.style.display = 'none';
+            downloadBtn.classList.add('hidden');
+            noResponseMsg.classList.remove('hidden'); // Show red text
             responseContentPre.textContent = 'Response content not available or empty.';
         }
 
