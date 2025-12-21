@@ -1,13 +1,62 @@
-name: Deploy to App Engine
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:  # Permite ejecutarlo manualmente desde GitHub si hace falta
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
+  quality:
+    name: Check Quality (Lint & Test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Setup Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      # Setup Node
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Node dependencies
+        run: npm install
+
+      # Linting
+      - name: Run Flake8
+        run: flake8 .
+      - name: Run ESLint
+        run: npm run lint
+
+      # Backend Tests
+      - name: Run Pytest
+        run: python -m pytest
+
+      # E2E Tests
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Start App & Run E2E Tests
+        run: |
+            nohup python app.py > app.log 2>&1 &
+            sleep 5
+            npm run test:e2e
+
   deploy:
+    name: Deploy to App Engine
+    needs: quality
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -28,4 +77,3 @@ jobs:
         uses: 'google-github-actions/deploy-appengine@v2'
         with:
           project_id: '${{ secrets.GCP_PROJECT_ID }}'
-          # Opconal: flags: '--quiet' es el default

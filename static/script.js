@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         curl += ` -H "${h.name}: ${h.value}"`;
                     });
                     if (request.postData?.text) {
-                        curl += ` --data-binary '${request.postData.text.replace(/'/g, "'\\''")}'`;
+                        curl += ` --data-binary '${request.postData.text.replace(/'/g, '\'\\\'\'')}'`;
                     }
 
                     // Enrich entry
@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 runLocalAnalysis();
 
             } catch (error) {
-                console.error("Error parsing HAR:", error);
+                console.error('Error parsing HAR:', error);
                 resultsContainer.innerHTML = `<p class="error">Error parsing HAR file: ${error.message}. Please ensure it is a valid JSON file.</p>`;
                 hasLoadedData = false;
             } finally {
@@ -163,8 +163,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         reader.onerror = (error) => {
-            console.error("Error reading file:", error);
-            resultsContainer.innerHTML = `<p class="error">Error reading file.</p>`;
+            console.error('Error reading file:', error);
+            resultsContainer.innerHTML = '<p class="error">Error reading file.</p>';
             spinner.classList.add('spinner-hidden');
         };
 
@@ -302,13 +302,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Mime
                 const mimeTypes = [...new Set(groupEntries.map(e => e.mimeType))].filter(m => m !== 'N/A' && m !== 'unknown');
-                let mimeDisplay = "N/A";
+                let mimeDisplay = 'N/A';
                 if (mimeTypes.length === 1) mimeDisplay = mimeTypes[0];
-                else if (mimeTypes.length > 1) mimeDisplay = "Multiple"; // Or use '-' if preferred by user, but "Multiple" is explicit for MIME
+                else if (mimeTypes.length > 1) mimeDisplay = 'Multiple'; // Or use '-' if preferred by user, but "Multiple" is explicit for MIME
                 // Let's stick to user request of using '-' for mixed data if it makes sense. 
                 // For MIME "Multiple" is slightly better but let's be consistent if they asked for '-' generally?
                 // "si tienen diferentes datos para la misma columna ... ponga un '-'" -> The example was status 0,200.
-                if (mimeTypes.length > 1) mimeDisplay = "-";
+                if (mimeTypes.length > 1) mimeDisplay = '-';
                 else if (groupEntries[0].mimeType) mimeDisplay = groupEntries[0].mimeType;
 
                 displayData.push({
@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
             url: entry.url,
             time: entry.time,
             size: entry.size,
-            mimeType: simpleMime || "unknown",
+            mimeType: simpleMime || 'unknown',
             isGroup: false
         };
     }
@@ -357,12 +357,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const topGroups = {};
 
         entries.forEach(entry => {
-            let key = "N/A";
+            let key = 'N/A';
             if (criteria === 'method') key = entry.method;
             else if (criteria === 'content-type') key = (entry.mimeType || 'unknown').split(';')[0].split('/').pop() || 'unknown';
             else if (criteria === 'status') key = entry.status > 0 ? Math.floor(entry.status / 100) + 'xx' : 'Status N/A';
             else if (criteria === 'domain') {
-                try { key = new URL(entry.url).hostname; } catch (e) { key = "Invalid URL"; }
+                try { key = new URL(entry.url).hostname; } catch (e) { key = 'Invalid URL'; }
             }
 
             if (!topGroups[key]) topGroups[key] = [];
@@ -592,7 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } catch (e) {
-            console.error("Error parsing URLs for domain filter:", e);
+            console.error('Error parsing URLs for domain filter:', e);
         }
 
         allDomains = Array.from(domains).sort();
@@ -770,52 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderEndpointResults(data) {
-        const endpoints = Object.keys(data).sort();
-        if (endpoints.length === 0) {
-            resultsContainer.innerHTML = '<p>No matching requests found.</p>';
-            return;
-        }
 
-        const header = document.createElement('div');
-        header.className = 'endpoint-group-header';
-        header.innerHTML = `
-            <div class="endpoint-path">Endpoint Pattern</div>
-            <div class="endpoint-methods">Methods</div>
-            <div class="endpoint-status">Status Summary</div>
-            <div class="endpoint-count">Count</div>
-        `;
-        resultsContainer.appendChild(header);
-
-        endpoints.forEach(endpointPath => {
-            const endpointData = data[endpointPath];
-
-            const groupDiv = document.createElement('div');
-            groupDiv.className = 'result-group collapsed';
-
-            const titleDiv = document.createElement('div');
-            titleDiv.className = 'group-title endpoint-title';
-            titleDiv.innerHTML = `
-                <div class="endpoint-path" title="${escapeHtml(endpointPath)}">${escapeHtml(endpointPath)}</div>
-                <div class="endpoint-methods">${escapeHtml(endpointData.methods.join(', '))}</div>
-                <div class="endpoint-status" title="${escapeHtml(endpointData.statusSummary)}">${escapeHtml(endpointData.statusSummary)}</div>
-                <div class="endpoint-count">${endpointData.count}</div>
-            `;
-
-            titleDiv.addEventListener('click', () => {
-                groupDiv.classList.toggle('collapsed');
-            });
-
-            groupDiv.appendChild(titleDiv);
-
-            const tableContainer = document.createElement('div');
-            tableContainer.className = 'endpoint-table-container';
-            tableContainer.appendChild(createTable(sortEntries(endpointData.entries)));
-            groupDiv.appendChild(tableContainer);
-
-            resultsContainer.appendChild(groupDiv);
-        });
-    }
 
     function createTable(entries) {
         const table = document.createElement('table');
@@ -1043,8 +998,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 URL.revokeObjectURL(url);
                 return;
             } catch (e) {
-                console.error("Failed to decode base64 for download:", e);
-                alert("Failed to process base64 content for download.");
+                console.error('Failed to decode base64 for download:', e);
+                alert('Failed to process base64 content for download.');
                 return;
             }
         }
@@ -1103,7 +1058,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         // Response Tab
-        const responsePane = document.querySelector('[data-tab-content="response"]');
+
         const responseContentPre = document.getElementById('response-content-pre');
         const content = entry.response.content;
         const mimeType = content.mimeType || '';
@@ -1182,10 +1137,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function escapeHtml(unsafe) {
         return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 });

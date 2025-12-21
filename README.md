@@ -70,6 +70,31 @@ Sigue estos pasos para poner en marcha la aplicación en tu entorno local.
     Una vez que el servidor esté corriendo, visita la siguiente URL en tu navegador:
     [http://localhost:8080](http://localhost:8080)
 
+    [http://localhost:8080](http://localhost:8080)
+
+## Developer Tools (Local Verification)
+
+If you want to run the checks locally before pushing:
+
+### 1. Linting
+```bash
+# Python
+flake8 .
+# JavaScript
+npm install
+npm run lint
+```
+
+### 2. Tests
+```bash
+# Backend
+pip install -r requirements-dev.txt
+pytest
+# Frontend (E2E)
+npx playwright install --with-deps
+npm run test:e2e
+```
+
 ## Despliegue en Google Cloud con App Engine
 
 Esta aplicación está lista para ser desplegada en Google Cloud Platform (GCP) utilizando App Engine.
