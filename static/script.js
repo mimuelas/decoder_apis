@@ -119,18 +119,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     else if (simpleMime.includes('image')) ext = simpleMime.split('/')[1];
                     else if (simpleMime.includes('text')) ext = 'txt';
 
-                    // Generate cURL (Simplified)
-                    let curl = `curl "${request.url}" -X ${request.method}`;
-                    (request.headers || []).forEach(h => {
-                        curl += ` -H "${h.name}: ${h.value}"`;
-                    });
-                    if (request.postData?.text) {
-                        curl += ` --data-binary '${request.postData.text.replace(/'/g, '\'\\\'\'')}'`;
-                    }
-
                     // Enrich entry
                     entry._id = index;
-                    entry.curl = curl;
+                    // cURL is now generated on demanding in the modal to save memory/cpu
                     entry.fileExtension = ext;
                     entry.mimeType = mimeType;
 
@@ -505,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cleanedEntries = entriesToDownload.map(entry => {
             const newEntry = { ...entry };
             delete newEntry._id;
-            delete newEntry.curl;
+
             delete newEntry.fileExtension;
             delete newEntry.mimeType; // Optional: keep or remove, HAR spec doesn't forbidden extra fields but cleaner to remove
             delete newEntry.method;
@@ -721,11 +712,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Render Results ---
+    let currentRenderId = 0;
+    const RENDER_BATCH_SIZE = 50;
+
     function renderResults(data) {
+        currentRenderId++; // Invalidate previous renders
+        const myRenderId = currentRenderId;
+
         resultsContainer.innerHTML = ''; // Clear for re-rendering
 
         function showNoResults() {
             resultsContainer.innerHTML = '<p>No matching requests found.</p>';
+            spinner.classList.add('spinner-hidden');
         }
 
         if (Array.isArray(data)) {
@@ -734,7 +732,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 showNoResults();
                 return;
             }
-            resultsContainer.appendChild(createTable(sortEntries(data)));
+            const table = createTableStructure();
+            resultsContainer.appendChild(table);
+            const tbody = table.createTBody();
+            renderRowsBatch(tbody, sortEntries(data), 0, myRenderId, () => {
+                spinner.classList.add('spinner-hidden');
+            });
         } else {
             // Grouped view
             const groups = Object.keys(data).sort();
@@ -742,37 +745,82 @@ document.addEventListener('DOMContentLoaded', () => {
                 showNoResults();
                 return;
             }
-            for (const groupName of groups) {
-                const entries = data[groupName];
-                if (entries.length === 0) continue;
 
-                // Calculate total requests in this group
-                const totalRequestsInGroup = entries.reduce((acc, entry) => acc + (entry.isGroup ? entry.count : 1), 0);
-
-                const groupDiv = document.createElement('div');
-                groupDiv.className = 'result-group collapsed';
-
-                const title = document.createElement('h3');
-                title.className = 'group-title';
-                title.textContent = `${groupName} (${totalRequestsInGroup} requests)`;
-
-                title.addEventListener('click', () => {
-                    groupDiv.classList.toggle('collapsed');
-                });
-
-                groupDiv.appendChild(title);
-
-                const tableContainer = document.createElement('div');
-                tableContainer.appendChild(createTable(sortEntries(entries)));
-                groupDiv.appendChild(tableContainer);
-                resultsContainer.appendChild(groupDiv);
-            }
+            // We render groups sequentially to avoid freezing 
+            renderGroupsBatch(groups, data, 0, myRenderId, () => {
+                spinner.classList.add('spinner-hidden');
+            });
         }
     }
 
+    function renderGroupsBatch(groups, data, index, renderId, onComplete) {
+        if (renderId !== currentRenderId) return;
 
+        const endIndex = Math.min(index + 5, groups.length); // Render 5 groups at a time
 
-    function createTable(entries) {
+        for (let i = index; i < endIndex; i++) {
+            const groupName = groups[i];
+            const entries = data[groupName];
+            if (entries.length === 0) continue;
+
+            const totalRequestsInGroup = entries.reduce((acc, entry) => acc + (entry.isGroup ? entry.count : 1), 0);
+
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'result-group collapsed';
+
+            const title = document.createElement('h3');
+            title.className = 'group-title';
+            title.textContent = `${groupName} (${totalRequestsInGroup} requests)`;
+
+            title.addEventListener('click', () => {
+                groupDiv.classList.toggle('collapsed');
+            });
+
+            groupDiv.appendChild(title);
+
+            const tableContainer = document.createElement('div');
+            const table = createTableStructure();
+            tableContainer.appendChild(table);
+            const tbody = table.createTBody();
+
+            // Render all rows for this group (assuming groups aren't massive themselves, or we could batch this too)
+            // Ideally we batch the rows inside the group too.
+            renderRowsBatch(tbody, sortEntries(entries), 0, renderId);
+
+            groupDiv.appendChild(tableContainer);
+            resultsContainer.appendChild(groupDiv);
+        }
+
+        if (endIndex < groups.length) {
+            setTimeout(() => renderGroupsBatch(groups, data, endIndex, renderId, onComplete), 0);
+        } else {
+            if (onComplete) onComplete();
+        }
+    }
+
+    function renderRowsBatch(tbody, entries, index, renderId, onComplete) {
+        if (renderId !== currentRenderId) return;
+
+        const fragment = document.createDocumentFragment();
+        const endIndex = Math.min(index + RENDER_BATCH_SIZE, entries.length);
+
+        for (let i = index; i < endIndex; i++) {
+            const entry = entries[i];
+            const rows = createRowsForEntry(entry);
+            rows.forEach(row => fragment.appendChild(row));
+        }
+
+        tbody.appendChild(fragment);
+
+        if (endIndex < entries.length) {
+            // Use setTimeout to yield to main thread
+            setTimeout(() => renderRowsBatch(tbody, entries, endIndex, renderId, onComplete), 0);
+        } else {
+            if (onComplete) onComplete();
+        }
+    }
+
+    function createTableStructure() {
         const table = document.createElement('table');
         table.className = 'result-table';
 
@@ -814,6 +862,7 @@ document.addEventListener('DOMContentLoaded', () => {
             headerRow.appendChild(th);
         });
 
+        // Header Sort Indicators
         headerRow.querySelectorAll('th[data-key]').forEach(th => {
             const key = th.dataset.key;
             const criterion = sortCriteria.find(c => c.key === key);
@@ -823,7 +872,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 indicator.className = 'sort-indicator';
                 indicator.textContent = criterion.direction === 'asc' ? '▲' : '▼';
 
-                // Add priority number if multiple sorts
                 if (sortCriteria.length > 1) {
                     const priority = document.createElement('small');
                     priority.textContent = (sortCriteria.findIndex(c => c.key === key) + 1);
@@ -832,93 +880,112 @@ document.addEventListener('DOMContentLoaded', () => {
                     priority.style.opacity = '0.8';
                     indicator.appendChild(priority);
                 }
-
                 th.appendChild(indicator);
-            }
-        });
-
-
-        // Body
-        const tbody = table.createTBody();
-
-        const createCellWithDiv = (parentRow, text, className = '') => {
-            const cell = parentRow.insertCell();
-            const contentDiv = document.createElement('div');
-            contentDiv.textContent = text;
-            contentDiv.title = String(text); // Ensure title is always a string
-            cell.appendChild(contentDiv);
-            if (className) cell.className = className;
-            return cell;
-        };
-
-        entries.forEach(entry => {
-            if (entry.isGroup) {
-                const groupRow = tbody.insertRow();
-                groupRow.className = 'group-row';
-                groupRow.dataset.groupKey = entry.groupKey;
-
-                const methodCell = groupRow.insertCell();
-                methodCell.innerHTML = `<div title="${entry.method}">${entry.method} (${entry.count})</div>`;
-
-                createCellWithDiv(groupRow, entry.status);
-                createCellWithDiv(groupRow, Math.round(entry.time));
-                createCellWithDiv(groupRow, entry.size === -1 ? 'N/A' : entry.size);
-                createCellWithDiv(groupRow, entry.mimeType);
-                createCellWithDiv(groupRow, entry.url, 'url');
-
-                // Render sub-rows but keep them hidden
-                entry.subRows.forEach(subEntry => {
-                    const subRow = tbody.insertRow();
-                    subRow.className = 'sub-row hidden';
-                    subRow.dataset.groupKey = entry.groupKey;
-                    subRow.dataset.entryId = subEntry._id;
-
-                    createCellWithDiv(subRow, subEntry.method);
-                    const statusCell = createCellWithDiv(subRow, subEntry.status);
-                    statusCell.className = subEntry.status >= 400 ? 'status-error' : 'status-success';
-                    createCellWithDiv(subRow, Math.round(subEntry.time));
-                    createCellWithDiv(subRow, subEntry.size === -1 ? 'N/A' : subEntry.size);
-                    createCellWithDiv(subRow, subEntry.mimeType || 'N/A');
-                    createCellWithDiv(subRow, subEntry.url, 'url');
-                });
-
-            } else { // Single, non-grouped entry
-                const row = tbody.insertRow();
-                row.dataset.entryId = entry._id;
-
-                createCellWithDiv(row, entry.method);
-                const statusCell = createCellWithDiv(row, entry.status);
-                statusCell.className = entry.status >= 400 ? 'status-error' : 'status-success';
-                createCellWithDiv(row, Math.round(entry.time));
-                createCellWithDiv(row, entry.size === -1 ? 'N/A' : entry.size);
-                createCellWithDiv(row, entry.mimeType || 'N/A');
-                createCellWithDiv(row, entry.url, 'url');
-            }
-        });
-
-        tbody.addEventListener('click', (e) => {
-            const row = e.target.closest('tr');
-            if (!row) return;
-
-            if (row.classList.contains('group-row')) {
-                row.classList.toggle('expanded');
-                const groupKey = row.dataset.groupKey;
-                const subRows = tbody.querySelectorAll(`tr.sub-row[data-group-key="${groupKey}"]`);
-                subRows.forEach(subRow => subRow.classList.toggle('hidden'));
-                return;
-            }
-
-            if (row.dataset.entryId) {
-                const entryId = row.dataset.entryId;
-                const fullEntry = fullDataMap[entryId];
-                if (fullEntry) {
-                    openModal(fullEntry);
-                }
             }
         });
 
         return table;
     }
+
+    // Renamed from createTable to createRowsForEntry and refactored to return logic
+    // This logic was previously inside createTable body loop
+    function createRowsForEntry(entry) {
+        const generatedRows = [];
+
+        // Helper
+        const createCellWithDiv = (parentRow, text, className = '') => {
+            const cell = parentRow.insertCell();
+            const contentDiv = document.createElement('div');
+            contentDiv.textContent = text;
+            contentDiv.title = String(text);
+            cell.appendChild(contentDiv);
+            if (className) cell.className = className;
+            return cell;
+        };
+
+        if (entry.isGroup) {
+            const groupRow = document.createElement('tr');
+            groupRow.className = 'group-row';
+            groupRow.dataset.groupKey = entry.groupKey;
+
+            const methodCell = groupRow.insertCell();
+            methodCell.innerHTML = `<div title="${entry.method}">${entry.method} (${entry.count})</div>`;
+
+            createCellWithDiv(groupRow, entry.status);
+            createCellWithDiv(groupRow, Math.round(entry.time));
+            createCellWithDiv(groupRow, entry.size === -1 ? 'N/A' : entry.size);
+            createCellWithDiv(groupRow, entry.mimeType);
+            createCellWithDiv(groupRow, entry.url, 'url');
+
+            generatedRows.push(groupRow);
+
+            // Render sub-rows but keep them hidden
+            entry.subRows.forEach(subEntry => {
+                const subRow = document.createElement('tr');
+                subRow.className = 'sub-row hidden';
+                subRow.dataset.groupKey = entry.groupKey;
+                subRow.dataset.entryId = subEntry._id;
+
+                createCellWithDiv(subRow, subEntry.method);
+                const statusCell = createCellWithDiv(subRow, subEntry.status);
+                statusCell.className = subEntry.status >= 400 ? 'status-error' : 'status-success';
+                createCellWithDiv(subRow, Math.round(subEntry.time));
+                createCellWithDiv(subRow, subEntry.size === -1 ? 'N/A' : subEntry.size);
+                createCellWithDiv(subRow, subEntry.mimeType || 'N/A');
+                createCellWithDiv(subRow, subEntry.url, 'url');
+
+                generatedRows.push(subRow);
+            });
+
+        } else { // Single, non-grouped entry
+            const row = document.createElement('tr');
+            row.dataset.entryId = entry._id;
+
+            createCellWithDiv(row, entry.method);
+            const statusCell = createCellWithDiv(row, entry.status);
+            statusCell.className = entry.status >= 400 ? 'status-error' : 'status-success';
+            createCellWithDiv(row, Math.round(entry.time));
+            createCellWithDiv(row, entry.size === -1 ? 'N/A' : entry.size);
+            createCellWithDiv(row, entry.mimeType || 'N/A');
+            createCellWithDiv(row, entry.url, 'url');
+
+            generatedRows.push(row);
+        }
+
+        return generatedRows;
+    }
+
+    // Add event delegation for the table clicks (logic remains the same, just ensured usage)
+    // We can attach this to resultsContainer instead of each tbody to save listeners
+    // But existing code attaches to tbody. Let's attach to resultsContainer globally ONCE?
+    // The previous code had `tbody.addEventListener`. Now I'm creating tbodies dynamically.
+    // I should move the event listener to resultsContainer (delegation).
+
+    resultsContainer.addEventListener('click', (e) => {
+        const row = e.target.closest('tr');
+        if (!row) return;
+
+        if (row.classList.contains('group-row')) {
+            row.classList.toggle('expanded');
+            const groupKey = row.dataset.groupKey;
+            // Find the parent tbody to scope the query
+            const tbody = row.closest('tbody');
+            const subRows = tbody.querySelectorAll(`tr.sub-row[data-group-key="${groupKey}"]`);
+            subRows.forEach(subRow => subRow.classList.toggle('hidden'));
+            return;
+        }
+
+        if (row.dataset.entryId) {
+            const entryId = row.dataset.entryId;
+            const fullEntry = fullDataMap[entryId];
+            if (fullEntry) {
+                openModal(fullEntry);
+            }
+        }
+    });
+
+    // Dummy createTable to satisfy any lingering references logic if any (removed)
+
 
     // --- Modal Logic ---
     const modal = document.getElementById('modal');
@@ -944,9 +1011,22 @@ document.addEventListener('DOMContentLoaded', () => {
     modalOverlay.addEventListener('click', closeModal);
     modalCloseBtn.addEventListener('click', closeModal);
 
+    function generateCurl(entry) {
+        const request = entry.request;
+        let curl = `curl "${request.url}" -X ${request.method}`;
+        (request.headers || []).forEach(h => {
+            curl += ` -H "${h.name}: ${h.value}"`;
+        });
+        if (request.postData?.text) {
+            curl += ` --data-binary '${request.postData.text.replace(/'/g, '\'\\\'\'')}'`;
+        }
+        return curl;
+    }
+
     copyCurlBtn.addEventListener('click', () => {
-        if (currentModalEntry && currentModalEntry.curl) {
-            navigator.clipboard.writeText(currentModalEntry.curl).then(() => {
+        if (currentModalEntry) {
+            const curlCommand = generateCurl(currentModalEntry);
+            navigator.clipboard.writeText(curlCommand).then(() => {
                 copyCurlBtn.textContent = 'Copied!';
                 setTimeout(() => {
                     copyCurlBtn.textContent = 'Copy as cURL';
