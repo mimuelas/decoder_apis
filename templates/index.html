@@ -287,13 +287,15 @@
                     <div class="accordion">
                         <details>
                             <summary>Is it safe? Where does my data go?</summary>
-                            <p>Completely safe. Processing is done <strong>100% in volatile memory</strong>. Your
-                                file is analyzed and destroyed instantly. No one (not even us) can see it later.
+                            <p>Completely safe. Processing is done <strong>100% in your browser memory</strong>. Your
+                                file is analyzed locally and never leaves your device. No one (not even us) can see it
+                                later.
                             </p>
                         </details>
                         <details>
                             <summary>File size limit?</summary>
-                            <p>We support files up to <strong>25MB</strong>. This covers 99% of web debugging use cases
+                            <p>We support files of <strong>unlimited size</strong> (limited only by your device's RAM).
+                                This covers 100% of web debugging use cases
                                 while keeping the service free and fast.</p>
                         </details>
                     </div>
@@ -364,7 +366,7 @@
                     <button class="modal-tab-btn" data-tab="response">Response</button>
                     <button class="modal-tab-btn" data-tab="preview">Preview</button>
                     <button class="modal-tab-btn" data-tab="timings">Timings</button>
-                    <button id="download-response-btn" class="action-link">Download Body</button>
+                    <button id="download-response-btn" class="action-link">Download Response Body</button>
                 </div>
                 <div class="modal-viewport pretty-scroll">
                     <div class="modal-tab-pane active" data-tab-content="general"></div>

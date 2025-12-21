@@ -836,35 +836,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const th = document.createElement('th');
             th.textContent = text;
             th.dataset.key = key;
-            th.title = 'Click to sort. Hold Shift to sort by multiple columns.';
+            th.title = 'Click to sort.';
 
-            th.addEventListener('click', (e) => {
+            th.addEventListener('click', () => {
                 const existingCriterionIndex = sortCriteria.findIndex(c => c.key === key);
 
-                if (e.shiftKey) {
-                    // Multi-sort: asc -> desc -> remove
-                    if (existingCriterionIndex > -1) {
-                        const existing = sortCriteria[existingCriterionIndex];
-                        if (existing.direction === 'asc') {
-                            existing.direction = 'desc';
-                        } else {
-                            sortCriteria.splice(existingCriterionIndex, 1);
-                        }
+                // Default to Multi-sort behavior always (as if Shift was held)
+                if (existingCriterionIndex > -1) {
+                    const existing = sortCriteria[existingCriterionIndex];
+                    if (existing.direction === 'asc') {
+                        existing.direction = 'desc';
                     } else {
-                        sortCriteria.push({ key, direction: 'asc' });
+                        sortCriteria.splice(existingCriterionIndex, 1);
                     }
                 } else {
-                    // Single-sort: asc -> desc -> remove
-                    const isSameSingleSort = sortCriteria.length === 1 && sortCriteria[0].key === key;
-                    if (isSameSingleSort) {
-                        if (sortCriteria[0].direction === 'asc') {
-                            sortCriteria[0].direction = 'desc';
-                        } else {
-                            sortCriteria = [];
-                        }
-                    } else {
-                        sortCriteria = [{ key, direction: 'asc' }];
-                    }
+                    sortCriteria.push({ key, direction: 'asc' });
                 }
 
                 renderResults(currentData);
@@ -905,7 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 groupRow.dataset.groupKey = entry.groupKey;
 
                 const methodCell = groupRow.insertCell();
-                methodCell.innerHTML = `<div title="${entry.method}"><span class="toggle">▶</span> ${entry.method} (${entry.count})</div>`;
+                methodCell.innerHTML = `<div title="${entry.method}">${entry.method} (${entry.count})</div>`;
 
                 createCellWithDiv(groupRow, entry.status);
                 createCellWithDiv(groupRow, Math.round(entry.time));

@@ -623,6 +623,10 @@ select:focus {
     background: rgba(255, 255, 255, 0.02);
 }
 
+.result-table tr {
+    cursor: pointer;
+}
+
 .result-table td.url {
     color: var(--primary);
 }
@@ -646,13 +650,36 @@ select:focus {
 
 /* Group Rows */
 .group-row {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(99, 102, 241, 0.1);
     cursor: pointer;
+    border-left: 4px solid var(--primary);
+    transition: background 0.2s;
+}
+
+.group-row:hover {
+    background: rgba(99, 102, 241, 0.2);
 }
 
 .group-row td {
-    font-weight: 600;
-    color: var(--primary);
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.sub-row {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.sub-row td:first-child {
+    padding-left: 2rem;
+    /* Indentation */
+    position: relative;
+}
+
+.sub-row td:first-child::before {
+    content: '↳';
+    position: absolute;
+    left: 1rem;
+    color: var(--text-dim);
 }
 
 /* --- Content Section --- */
@@ -1104,5 +1131,27 @@ pre {
 
     .main-content {
         padding: 1rem 0.5rem;
+    }
+}
+
+/* === CRITICAL FIX FOR TABS === */
+.modal-tab-pane {
+    display: none;
+}
+
+.modal-tab-pane.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
