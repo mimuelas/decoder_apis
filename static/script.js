@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasLoadedData = false;
 
     // --- Form Submission ---
+    // --- Form Submission ---
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -79,51 +80,95 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Limit file size to 25MB
-        const MAX_SIZE = 25 * 1024 * 1024;
-        if (harFileInput.files[0].size > MAX_SIZE) {
-            alert('File is too large (Max 25MB).');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('har_file', harFileInput.files[0]);
+        const file = harFileInput.files[0];
 
         // UI Loading State
         resultsSection.classList.remove('results-hidden');
         spinner.classList.remove('spinner-hidden');
         resultsContainer.innerHTML = '';
 
-        try {
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData,
-            });
+        // Use FileReader to read the file locally
+        const reader = new FileReader();
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'An unknown error occurred.');
+        reader.onload = async (event) => {
+            try {
+                const fileContent = event.target.result;
+                const harData = JSON.parse(fileContent);
+
+                const entries = harData.log?.entries || [];
+
+                // Normalize and enrich entries (Logic ported from app.py)
+                fullDataMap = {};
+                rawDataset = [];
+
+                entries.forEach((entry, index) => {
+                    // Normalize structure similar to backend logic
+                    const request = entry.request || {};
+                    const response = entry.response || {};
+                    const content = response.content || {};
+
+                    const mimeType = content.mimeType || 'N/A';
+                    const simpleMime = mimeType.split(';')[0];
+
+                    // Helper to guess extension (simplified)
+                    let ext = 'bin';
+                    if (simpleMime.includes('json')) ext = 'json';
+                    else if (simpleMime.includes('javascript')) ext = 'js';
+                    else if (simpleMime.includes('html')) ext = 'html';
+                    else if (simpleMime.includes('xml')) ext = 'xml';
+                    else if (simpleMime.includes('image')) ext = simpleMime.split('/')[1];
+                    else if (simpleMime.includes('text')) ext = 'txt';
+
+                    // Generate cURL (Simplified)
+                    let curl = `curl "${request.url}" -X ${request.method}`;
+                    (request.headers || []).forEach(h => {
+                        curl += ` -H "${h.name}: ${h.value}"`;
+                    });
+                    if (request.postData?.text) {
+                        curl += ` --data-binary '${request.postData.text.replace(/'/g, "'\\''")}'`;
+                    }
+
+                    // Enrich entry
+                    entry._id = index;
+                    entry.curl = curl;
+                    entry.fileExtension = ext;
+                    entry.mimeType = mimeType;
+
+                    // Ensure standard fields exist for easy access
+                    entry.method = request.method || 'N/A';
+                    entry.url = request.url || 'N/A';
+                    entry.status = response.status || 0;
+                    entry.time = entry.time || 0;
+                    entry.size = content.size || -1;
+
+                    fullDataMap[index] = entry;
+                    rawDataset.push(entry);
+                });
+
+                hasLoadedData = true;
+
+                // Populate domains once
+                populateDomainFilter(fullDataMap);
+
+                // Run initial analysis
+                runLocalAnalysis();
+
+            } catch (error) {
+                console.error("Error parsing HAR:", error);
+                resultsContainer.innerHTML = `<p class="error">Error parsing HAR file: ${error.message}. Please ensure it is a valid JSON file.</p>`;
+                hasLoadedData = false;
+            } finally {
+                spinner.classList.add('spinner-hidden');
             }
+        };
 
-            const rawData = await response.json();
-
-            // Store the full dataset
-            fullDataMap = rawData.fullDataMap; // Keeps ID mapping
-            rawDataset = Object.values(fullDataMap); // Array for filtering
-            hasLoadedData = true;
-
-            // Populate domains once
-            populateDomainFilter(fullDataMap);
-
-            // Run initial analysis
-            runLocalAnalysis();
-
-        } catch (error) {
-            resultsContainer.innerHTML = `<p class="error">Error: ${error.message}</p>`;
-            hasLoadedData = false; // Reset on error
-        } finally {
+        reader.onerror = (error) => {
+            console.error("Error reading file:", error);
+            resultsContainer.innerHTML = `<p class="error">Error reading file.</p>`;
             spinner.classList.add('spinner-hidden');
-        }
+        };
+
+        reader.readAsText(file);
     });
 
     // --- Client-Side Analysis Engine ---
@@ -455,31 +500,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const uniqueIds = [...new Set(entriesToDownloadIds)];
         const entriesToDownload = uniqueIds.map(id => fullDataMap[id]);
 
+        // Clean entries for export (remove internal fields)
         const cleanedEntries = entriesToDownload.map(entry => {
             const newEntry = { ...entry };
             delete newEntry._id;
             delete newEntry.curl;
             delete newEntry.fileExtension;
+            delete newEntry.mimeType; // Optional: keep or remove, HAR spec doesn't forbidden extra fields but cleaner to remove
+            delete newEntry.method;
+            delete newEntry.url;
+            delete newEntry.status; // These were added for convenience, original is in request/response objects
+            delete newEntry.size;
+            delete newEntry.time; // HAR has time field, but check if we overwrote it. unique id logic preserved original time.
             return newEntry;
         });
 
-        try {
-            const response = await fetch('/download', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(cleanedEntries),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to download file.');
+        // Reconstruct HAR structure
+        const harData = {
+            log: {
+                version: '1.2',
+                creator: {
+                    name: 'HAR Analyzer',
+                    version: '1.0'
+                },
+                entries: cleanedEntries
             }
+        };
 
-            const blob = await response.blob();
+        try {
+            const blob = new Blob([JSON.stringify(harData, null, 2)], { type: 'application/json' });
             const url = window.URL.createObjectURL(blob);
             triggerDownload(url, 'filtered.har');
             window.URL.revokeObjectURL(url);
-
         } catch (error) {
             console.error('Download error:', error);
             alert(`Could not download file: ${error.message}`);
